@@ -1,4 +1,4 @@
-package com.trading.service.ts.model;
+package com.trading.service.model;
 
 public class Candle {
 

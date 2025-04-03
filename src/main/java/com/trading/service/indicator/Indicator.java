@@ -1,11 +1,12 @@
-package com.trading.service.ts.indicator;
+package com.trading.service.indicator;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Component;
 
-import com.trading.service.ts.model.QqeResult;
+import com.trading.service.model.QqeResult;
+import com.trading.service.model.SslShape;
 
 @Component
 public class Indicator {
@@ -73,7 +74,21 @@ public class Indicator {
 
 		return wma(dataArr, (int) Math.sqrt(period));
 	}
-
+	
+	public static List<Double> hmaList(List<Double> data, int period) {
+	    List<Double> hmaValues = new ArrayList<>();
+	    for (int i = 0; i < data.size(); i++) {
+	        if (i < period - 1) {
+	            hmaValues.add(data.get(i)); // 초기값 보정
+	        } else {
+	            List<Double> subData = data.subList(0, i + 1);
+	            double hma = hma(subData, period); // 너가 만든 hma(double) 버전 재사용
+	            hmaValues.add(hma);
+	        }
+	    }
+	    return hmaValues;
+	}
+	
 	 public static List<Double> rsi(List<Double> closes, int period) {
 	        List<Double> rsiList = new ArrayList<>();
 	        if (closes == null || closes.size() <= period) return rsiList;
@@ -110,6 +125,26 @@ public class Indicator {
 	        return rsiList;
 	    }
 	 
+	 public static double sma(List<Double> data, int period) {
+		    if (data.size() < period) return 0;
+		    return data.subList(data.size() - period, data.size())
+		               .stream()
+		               .mapToDouble(d -> d)
+		               .average()
+		               .orElse(0);
+		}
+	 //Standard Deviation : 표준 편차
+	 public static double stdDev(List<Double> data, int period) {
+		    if (data.size() < period) return 0;
+		    List<Double> sub = data.subList(data.size() - period, data.size());
+		    double mean = sub.stream().mapToDouble(d -> d).average().orElse(0);
+		    double variance = sub.stream()
+		                         .mapToDouble(val -> Math.pow(val - mean, 2))
+		                         .average()
+		                         .orElse(0);
+		    return Math.sqrt(variance);
+		}
+	 
 //========================================================================
 	 
 	// True Range
@@ -142,12 +177,32 @@ public class Indicator {
 		return keltma - rangema * 0.2;
 	}
 	
-	 public static QqeResult calculateQqe(
-	            List<Double> close,
-	            int rsiLength,
-	            int smoothingLength,
-	            double qqeFactor
-	    ) {
+	public static List<Double> ssl(List<Double> highList, List<Double> lowList,
+								List<Double> closeList, int period) {
+		    int size = closeList.size();
+		    List<Double> emaHighList = hmaList(highList, period);
+		    List<Double> emaLowList = hmaList(lowList, period);
+
+		    List<Double> sslList = new ArrayList<>();
+		    int hlv = 0;
+
+		    for (int i = 0; i < size; i++) {
+		        double close = closeList.get(i);
+		        double emaHigh = emaHighList.get(i);
+		        double emaLow = emaLowList.get(i);
+
+		        if (close > emaHigh) hlv = 1;
+		        else if (close < emaLow) hlv = -1;
+		        // else hlv 유지
+
+		        double ssl = (hlv < 0) ? emaHigh : emaLow;
+		        sslList.add(ssl);
+		    }
+
+		    return sslList;
+		}
+	
+	 public static QqeResult qqe(List<Double> close, int rsiLength, int smoothingLength, double qqeFactor) {
 	        List<Double> rsi = rsi(close, rsiLength);
 	        List<Double> smoothedRsi = emaList(rsi, smoothingLength);
 
@@ -185,4 +240,26 @@ public class Indicator {
 	        result.smoothedRsi = smoothedRsi.get(smoothedRsi.size() - 1);
 	        return result;
 	    }
+	 
+	 public static SslShape detailSsl(List<Double> sslList) {
+		 if (sslList == null || sslList.size() < 3) return SslShape.NONE;
+
+		    int third = sslList.size() / 3;
+
+		    double leftAvg = avg(sslList.subList(0, third));
+		    double midAvg = avg(sslList.subList(third, 2 * third));
+		    double rightAvg = avg(sslList.subList(2 * third, sslList.size()));
+
+		    if (midAvg > leftAvg && midAvg > rightAvg) {
+		        return SslShape.PEAK; // ^ 모양
+		    } else if (midAvg < leftAvg && midAvg < rightAvg) {
+		        return SslShape.VALLEY; // v 모양
+		    } else {
+		        return SslShape.NONE;
+		    }
+	 }
+	 
+	 private static double avg(List<Double> list) {
+		    return list.stream().mapToDouble(d -> d).average().orElse(0.0);
+		}
 }

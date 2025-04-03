@@ -1,4 +1,4 @@
-package com.trading.service.ts.service;
+package com.trading.service.service;
 
 import java.util.List;
 
@@ -7,8 +7,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.UriComponentsBuilder;
 
-import com.trading.service.ts.model.Candle;
+import com.trading.service.model.Candle;
 
 import reactor.core.publisher.Mono;
 
@@ -22,9 +23,14 @@ public class BinanceRestService {
 		        .build();
 
 	  public Mono<List<Candle>> getCandles(String symbol, String interval, int limit) {
-        log.info("Requesting candles: symbol={}, interval={}, limit={}", symbol, interval, limit);
-        log.info("url : {}",  webClient.get());
-        System.out.println("?zzzz");
+		  String url = UriComponentsBuilder.fromHttpUrl("https://api.binance.com/api/v3/klines")
+		            .queryParam("symbol", symbol)
+		            .queryParam("interval", interval)
+		            .queryParam("limit", limit)
+		            .build()
+		            .toUriString();
+
+		    log.info("📤 [요청 시작] Binance API 호출 → {}", url);
 		  return webClient.get()
 				  .uri(uriBuilder -> uriBuilder
 						  .path("/api/v3/klines")
@@ -34,7 +40,9 @@ public class BinanceRestService {
 						  .build())
 		            	.retrieve()
 		            	.bodyToMono(new ParameterizedTypeReference<List<List<Object>>>() {})
-		            	.map(this::mapToCandles);
+		            	.map(this::mapToCandles)
+		            	.doOnSuccess(result -> log.info("✅ [요청 성공] 받은 캔들 수: {}", result.size()))
+		                .doOnError(error -> log.error("❌ [요청 실패] Binance API 호출 실패: {}", error.getMessage()));
 	  }
 
 		    private List<Candle> mapToCandles(List<List<Object>> raw) {
