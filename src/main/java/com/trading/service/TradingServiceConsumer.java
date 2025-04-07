@@ -31,10 +31,18 @@ public class TradingServiceConsumer implements CommandLineRunner{
 	private Indicator indicator;
 	@Autowired
 	private TradingUtil util;
+	
+	int period9 = 9;
+	int period25 = 25;
+	int period99 = 99;
+	
 	@Override
 	public void run(String... args) throws Exception {
 		System.out.println("실행 됨 ");
-		tasting().subscribe();
+		//long   = 롱
+		//short  = 숏
+		//none = 보합
+		//m5_emaTrand().subscribe();
 		
 	}
 	
@@ -79,10 +87,6 @@ public class TradingServiceConsumer implements CommandLineRunner{
 										List<Double> m1_ema25_list = new ArrayList<>(); // 1416
 										List<Double> m1_ema9_list = new ArrayList<>(); // 1432
 										
-										int period9 = 9;
-										int period25 = 25;
-										int period99 = 99;
-										
 										for (int i = m1_candleCnt-1; i >= period99; i--) {
 											m1_ema99_list.add(indicator.ema(m1_candles.getCloses().subList((i-period99), i), period99));
 										}
@@ -125,7 +129,7 @@ public class TradingServiceConsumer implements CommandLineRunner{
 	
 											QqeResult primaryQqe = indicator.qqe(m5_candles.getCloses().subList((i-45), i), 12, 10, 6.0);
 											qqe.add(primaryQqe.getSmoothedRsi());
-											//System.out.println(util.toKst(m5_candles.getOpenTime().get(i)) + " : primaryQqe.getSmoothedRsi() : " +idx + " : "+ (primaryQqe.getSmoothedRsi()-50));
+											System.out.println(util.toKst(m5_candles.getOpenTime().get(i)) + " : primaryQqe.getSmoothedRsi() : " +idx + " : "+ (primaryQqe.getSmoothedRsi()-50));
 											idx++;
 										}
 										
@@ -149,8 +153,11 @@ public class TradingServiceConsumer implements CommandLineRunner{
 						)
 				);
 	}
+	
+
+
 	public Mono<Void> tt(){
-		return Mono.defer(() -> restService.getCandles("BTCUSDT", "15m", 100))
+		return Mono.defer(() -> restService.getCandles("BTCUSDT", "5m", 10))
 				.flatMap(list -> {
 					List<Double> closes = list.stream()
 		                    .map(Candle::getClose)
