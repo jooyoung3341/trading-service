@@ -8,7 +8,9 @@
 </head>
 
 <div layout:fragment="content">
-asdasd
+	<table class="table table-hover">
+		
+	</table>
 </div>
 
 
@@ -18,6 +20,15 @@ window.onload = function(){
 
 }
 
+function getTicker(){
+	$.ajax({
+		url : "/getTicker",
+		dataType : "json",
+		success : function(data){
+			tickerTable(data);
+		}
+	})
+}
 </script>
 </th:block>
 
