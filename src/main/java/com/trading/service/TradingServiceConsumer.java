@@ -13,6 +13,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Service;
 
 import com.trading.service.common.TradingUtil;
+import com.trading.service.controller.WebController;
 import com.trading.service.indicator.Indicator;
 import com.trading.service.model.Candle;
 import com.trading.service.model.Candles;
@@ -31,6 +32,8 @@ public class TradingServiceConsumer implements CommandLineRunner{
 	private Indicator indicator;
 	@Autowired
 	private TradingUtil util;
+	@Autowired
+	private WebController t;
 	
 	int period9 = 9;
 	int period25 = 25;
@@ -43,7 +46,7 @@ public class TradingServiceConsumer implements CommandLineRunner{
 		//short  = 숏
 		//none = 보합
 		//m5_emaTrand().subscribe();
-		
+		//t.getTicker().subscribe();
 	}
 	
 	public Mono<Void> tasting(){

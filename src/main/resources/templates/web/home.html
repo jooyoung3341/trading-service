@@ -8,7 +8,8 @@
 </head>
 
 <div layout:fragment="content">
-	<table class="table table-hover">
+
+	<table class="table table-hover" id="ticker">
 		
 	</table>
 </div>
@@ -17,7 +18,7 @@
 <th:block layout:fragment="script">
 <script>
 window.onload = function(){
-
+	getTicker();
 }
 
 function getTicker(){
@@ -25,7 +26,7 @@ function getTicker(){
 		url : "/getTicker",
 		dataType : "json",
 		success : function(data){
-			tickerTable(data);
+			console.log(data);
 		}
 	})
 }

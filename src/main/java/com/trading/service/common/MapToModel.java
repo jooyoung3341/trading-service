@@ -5,7 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Component;
 
 import com.trading.service.model.Candle;
-import com.trading.service.model.Ticker24h;
+import com.trading.service.model.Ticker;
 
 @Component
 public class MapToModel {
@@ -24,7 +24,7 @@ public class MapToModel {
 	}
 		
 	//getCandles에서 가져온 데이터를 객체화 시킴
-	private List<Ticker24h> mapToTicker24h(List<List<Object>> raw) {
+	private List<Ticker> mapToTicker24h(List<List<Object>> raw) {
 		return raw.stream().map(data -> {
 			String symbol = data.get(0).toString(); 					// 거래 심볼
 			String priceChange = data.get(1).toString();				//가격 변동량
@@ -39,7 +39,7 @@ public class MapToModel {
 			String quoteVolume = data.get(10).toString();			//거래된 견적 자산의 총 수량
 			String openTime = data.get(11).toString();				//24시간 창의 시작 시간(타임스탬프)
 			String closeTime = data.get(12).toString();				//24시간 창의 종료 시간(타임스탬프)
-			return new Ticker24h(symbol, priceChange, priceChangePercent, weightedAvgPrice, lastPrice, 
+			return new Ticker(symbol, priceChange, priceChangePercent, weightedAvgPrice, lastPrice, 
 					lastQty, openPrice, highPrice, lowPrice, volume, quoteVolume, openTime, closeTime);
 		}).toList();
 	}
