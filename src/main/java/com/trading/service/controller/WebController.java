@@ -54,18 +54,26 @@ public class WebController {
 					List<Ticker> tickers = ticker.stream()
 					    .filter(t -> mustIncludeSymbols.contains(t.getSymbol()))
 					    .collect(Collectors.toList());
+					List<Ticker> t = new Ticker();
+					for (Ticker t : tickers) {
+						tradingService.trand(t.getSymbol(), "1m")
+						.flatMap(r -> {
+							
+						});
+					}
 					
 					map.put("topTicker", topTicker);
 					map.put("ticker", tickers);
-					
-					return Mono.just(map);
+					System.out.println("map : " + map);
+					//return Mono.just(map);
+					return restService.getCandles(null, null, 0);
 				})
 		);
 	}
 				
 
 	@ResponseBody
-	@RequestMapping(value="/getTicker", method=RequestMethod.GET)
+	@RequestMapping(value="/getTicker1", method=RequestMethod.GET)
 	public Mono<Map<String, Object>> getTicker1() {
 		return Mono.defer(() -> restService.getTickers()
 				.flatMap(ticker -> {

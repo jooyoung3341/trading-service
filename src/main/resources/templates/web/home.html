@@ -10,7 +10,19 @@
 <div layout:fragment="content">
 
 	<table class="table table-hover" id="ticker">
+		<thead>
+			<tr>
+				<th scope="col">심볼</th>
+				<th scope="col">가격</th>
+				<th scope="col">24H%</th>
+				<th scope="col">1분</th>
+				<th scope="col">5분</th>
+				<th scope="col">15분</th>
+			</tr>
+		</thead>
+		<tbody id="tickerBody">
 		
+		</tbody>
 	</table>
 </div>
 
@@ -26,10 +38,33 @@ function getTicker(){
 		url : "/getTicker",
 		dataType : "json",
 		success : function(data){
-			console.log(data);
+			tickerTable(data);
 		}
 	})
 }
+
+ function tickerTable(data){
+	 disp = "";
+	 data.ticker.forEach(function(item){
+		 disp += "<tr class='table-primary'>";
+		 disp += "<th scope='row' style='cursor:pointer' onclick='copyToClipboard(\"" + item.symbol + ".P\")'>" + item.symbol + "</th>";
+		 disp += "<th scope='row'>"+item.lastPrice+"</th>";
+		 disp += "<th scope='row'>"+item.priceChangePercent+"%</th>";
+		 disp += "<th scope='row'>"+item.lastPrice+"</th>";
+		 disp += "<th scope='row'>"+item.lastPrice+"</th>";
+		 disp += "<th scope='row'>"+item.lastPrice+"</th></tr>";
+	 })
+	 data.topTicker.forEach(function(item){
+		 disp += "<tr class='table-secondary'>";
+		 disp += "<th scope='row' style='cursor:pointer' onclick='copyToClipboard(\"" + item.symbol + ".P\")'>" + item.symbol + "</th>";
+		 disp += "<th scope='row'>"+item.lastPrice+"</th>";
+		 disp += "<th scope='row'>"+item.priceChangePercent+"%</th>";
+		 disp += "<th scope='row'>"+item.lastPrice+"</th>";
+		 disp += "<th scope='row'>"+item.lastPrice+"</th>";
+		 disp += "<th scope='row'>"+item.lastPrice+"</th></tr>";
+	 })
+	 $("#tickerBody").html(disp);
+}; 
 </script>
 </th:block>
 

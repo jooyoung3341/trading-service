@@ -20,11 +20,11 @@ public class TradingService {
 	@Autowired
 	private TradingUtil util;
 	
-	public Mono<String> trand(String symbol) {
+	public Mono<String> trand(String symbol, String time) {
 		int period9 = 9;
 		int period25 = 25;
 		int period99 = 99;
-		return Mono.defer(() -> restService.getCandles(symbol, "5m", (99+11)))
+		return Mono.defer(() -> restService.getCandles(symbol, time, (99+11)))
 				.flatMap(m5_list -> {
 							Candles m5_candles = new Candles().setCandles(m5_list);
 							List<Double> m5_close = m5_candles.getCloses().subList(0, (m5_candles.getCloses().size() -1));;

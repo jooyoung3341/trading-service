@@ -17,14 +17,18 @@ public class Ticker {
 	  private String openTime;					//24시간 창의 시작 시간(타임스탬프)
 	  private String closeTime;					//24시간 창의 종료 시간(타임스탬프)
 	  private String price;
+	  private String m1_trand;
+	  private String m5_trand;
+	  private String m15_trand;
 	  
-	public Ticker(String symbol, String priceChange, String priceChangePercent, String weightedAvgPrice,
+	  
+	/*public Ticker(String symbol, String priceChange, String priceChangePercent, String weightedAvgPrice,
 			String lastPrice, String lastQty, String openPrice, String highPrice, String lowPrice, String volume,
 			String quoteVolume, String openTime, String closeTime) {
 		this.symbol = symbol; this.priceChange = priceChange; this.priceChangePercent = priceChangePercent; this.weightedAvgPrice = weightedAvgPrice;
 		this.lastPrice = lastPrice; this.lastQty = lastQty; this.openPrice = openPrice; this.highPrice = highPrice; this.lowPrice = lowPrice; this.volume = volume;
 		this.quoteVolume = quoteVolume; this.openTime = openTime; this.closeTime = closeTime;
-	}
+	}*/
 	
 	
 	public String getPrice() {
@@ -115,6 +119,39 @@ public class Ticker {
 	public void setCloseTime(String closeTime) {
 		this.closeTime = closeTime;
 	}
+	
+
+
+	public String getM1_trand() {
+		return m1_trand;
+	}
+
+
+	public void setM1_trand(String m1_trand) {
+		this.m1_trand = m1_trand;
+	}
+
+
+	public String getM5_trand() {
+		return m5_trand;
+	}
+
+
+	public void setM5_trand(String m5_trand) {
+		this.m5_trand = m5_trand;
+	}
+
+
+	public String getM15_trand() {
+		return m15_trand;
+	}
+
+
+	public void setM15_trand(String m15_trand) {
+		this.m15_trand = m15_trand;
+	}
+
+
 	@Override
 	public String toString() {
 		return "Ticker [symbol=" + symbol + ", priceChange=" + priceChange + ", priceChangePercent="
