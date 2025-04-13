@@ -42,6 +42,10 @@ public class TradingService {
 										List<Double> m5_ssl = m5_sslData.subList((m5_sslData_size-10), m5_sslData_size);
 
 										for (int i = 0; i < m5_ssl.size(); i++) {
+											if(trand.equals("none")) {
+												return Mono.just("none");
+											}
+											
 											if(trand.equals("short")) {
 												if(m5_ssl.get(i) > m5_ssl.get(i+1)) {
 													//우하향중

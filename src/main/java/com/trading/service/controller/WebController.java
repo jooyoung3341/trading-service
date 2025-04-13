@@ -21,6 +21,7 @@ import com.trading.service.model.Tickers;
 import com.trading.service.service.BinanceRestService;
 import com.trading.service.service.TradingService;
 
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Controller
@@ -48,25 +49,53 @@ public class WebController {
 						    .sorted(Comparator.comparingDouble(data -> -Double.parseDouble(data.getPriceChangePercent())))
 						    .limit(15)
 						    .collect(Collectors.toList());
-					
 					Set<String> mustIncludeSymbols = Set.of("BTCUSDT", "ETHUSDT", "SOLUSDT");
-					// 1. 필수 심볼 따로 추출
+					// 필수 코인 추출
 					List<Ticker> tickers = ticker.stream()
 					    .filter(t -> mustIncludeSymbols.contains(t.getSymbol()))
 					    .collect(Collectors.toList());
-					List<Ticker> t = new Ticker();
-					for (Ticker t : tickers) {
-						tradingService.trand(t.getSymbol(), "1m")
-						.flatMap(r -> {
-							
-						});
-					}
 					
-					map.put("topTicker", topTicker);
-					map.put("ticker", tickers);
-					System.out.println("map : " + map);
+					// 중복되지 않도록 topTicker에서 tickers에 없는 symbol만 필터링
+					Set<String> existingSymbols = tickers.stream()
+					    .map(Ticker::getSymbol)
+					    .collect(Collectors.toSet());
+					List<Ticker> tickerList = new ArrayList<>();
+					tickerList.addAll(tickers); // tickers 먼저 추가
+					tickerList.addAll(
+					    topTicker.stream()
+					             .filter(t -> !existingSymbols.contains(t.getSymbol())) // 중복 제거
+					             .collect(Collectors.toList())
+					);
+					
+					//List<Ticker> t = new Ticker();
+					return Flux.fromIterable(tickerList)
+				    .flatMap(ti -> tradingService.trand(ti.getSymbol(), "1m")
+				            .map(tran -> {
+				            	System.out.println("symbol 1m : " + ti.getSymbol());
+				                ti.setM1_trand(tran);  // 여기서 안전하게 수정 가능
+				                return ti;
+				            })
+				    )
+				    .flatMap(ti -> tradingService.trand(ti.getSymbol(), "5m")
+				    		.map(tran -> {
+				    			System.out.println("symbol 5m : " + ti.getSymbol());
+				    			ti.setM5_trand(tran);  // 여기서 안전하게 수정 가능
+				                return ti;
+				    		})
+				    )
+				    .flatMap(ti -> tradingService.trand(ti.getSymbol(), "15m")
+				    		.map(tran -> {
+				    			System.out.println("symbol 15m : " + ti.getSymbol());
+				    			ti.setM15_trand(tran);  // 여기서 안전하게 수정 가능
+				                return ti;
+				    		})
+				    )
+				    .collectList()
+				    .map(updatedTickers -> {
+						map.put("tickerList", updatedTickers);
+						return map;
+					});
 					//return Mono.just(map);
-					return restService.getCandles(null, null, 0);
 				})
 		);
 	}
