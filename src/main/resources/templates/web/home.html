@@ -45,24 +45,27 @@ function getTicker(){
 
  function tickerTable(data){
 	 disp = "";
-	 data.ticker.forEach(function(item){
+	 console.log(data);
+	 console.log(JSON.stringify(data));
+	 
+	 data.tickerList.forEach(function(item){
 		 disp += "<tr class='table-primary'>";
 		 disp += "<th scope='row' style='cursor:pointer' onclick='copyToClipboard(\"" + item.symbol + ".P\")'>" + item.symbol + "</th>";
 		 disp += "<th scope='row'>"+item.lastPrice+"</th>";
 		 disp += "<th scope='row'>"+item.priceChangePercent+"%</th>";
-		 disp += "<th scope='row'>"+item.lastPrice+"</th>";
-		 disp += "<th scope='row'>"+item.lastPrice+"</th>";
-		 disp += "<th scope='row'>"+item.lastPrice+"</th></tr>";
+		 disp += "<th scope='row'>"+item.m1_trand+"</th>";
+		 disp += "<th scope='row'>"+item.m5_trand+"</th>";
+		 disp += "<th scope='row'>"+item.m15_trand+"</th></tr>";
 	 })
-	 data.topTicker.forEach(function(item){
+	/* data.topTicker.forEach(function(item){
 		 disp += "<tr class='table-secondary'>";
 		 disp += "<th scope='row' style='cursor:pointer' onclick='copyToClipboard(\"" + item.symbol + ".P\")'>" + item.symbol + "</th>";
 		 disp += "<th scope='row'>"+item.lastPrice+"</th>";
 		 disp += "<th scope='row'>"+item.priceChangePercent+"%</th>";
-		 disp += "<th scope='row'>"+item.lastPrice+"</th>";
-		 disp += "<th scope='row'>"+item.lastPrice+"</th>";
-		 disp += "<th scope='row'>"+item.lastPrice+"</th></tr>";
-	 })
+		 disp += "<th scope='row'>"+item.m1_trand+"</th>";
+		 disp += "<th scope='row'>"+item.m5_trand+"</th>";
+		 disp += "<th scope='row'>"+item.m15_trand+"</th></tr>";
+	 })*/
 	 $("#tickerBody").html(disp);
 }; 
 </script>
