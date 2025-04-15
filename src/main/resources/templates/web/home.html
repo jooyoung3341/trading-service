@@ -49,7 +49,15 @@ function getTicker(){
 	 console.log(JSON.stringify(data));
 	 
 	 data.tickerList.forEach(function(item){
-		 disp += "<tr class='table-primary'>";
+		 tableColor = "";
+		 if(item.m15_trand == "short"){
+			 tableColor = "table-danger";
+		 }else if(item.m15_trand == "long"){
+			 tableColor = "table-success";
+		 }else if(item.m15_trand == "none"){
+			 tableColor = "table-primary";
+		 }
+		 disp += "<tr class='"+tableColor+"'>";
 		 disp += "<th scope='row' style='cursor:pointer' onclick='copyToClipboard(\"" + item.symbol + ".P\")'>" + item.symbol + "</th>";
 		 disp += "<th scope='row'>"+item.lastPrice+"</th>";
 		 disp += "<th scope='row'>"+item.priceChangePercent+"%</th>";

@@ -71,21 +71,18 @@ public class WebController {
 					return Flux.fromIterable(tickerList)
 				    .flatMap(ti -> tradingService.trand(ti.getSymbol(), "1m")
 				            .map(tran -> {
-				            	//System.out.println("symbol 1m : " + ti.getSymbol());
 				                ti.setM1_trand(tran);  // 여기서 안전하게 수정 가능
 				                return ti;
 				            })
 				    )
 				    .flatMap(ti -> tradingService.trand(ti.getSymbol(), "5m")
 				    		.map(tran -> {
-				    			//System.out.println("symbol 5m : " + ti.getSymbol());
 				    			ti.setM5_trand(tran);  // 여기서 안전하게 수정 가능
 				                return ti;
 				    		})
 				    )
 				    .flatMap(ti -> tradingService.trand(ti.getSymbol(), "15m")
 				    		.map(tran -> {
-				    			//System.out.println("symbol 15m : " + ti.getSymbol());
 				    			ti.setM15_trand(tran);  // 여기서 안전하게 수정 가능
 				                return ti;
 				    		})

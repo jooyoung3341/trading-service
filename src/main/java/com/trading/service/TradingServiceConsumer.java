@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -18,7 +19,9 @@ import com.trading.service.indicator.Indicator;
 import com.trading.service.model.Candle;
 import com.trading.service.model.Candles;
 import com.trading.service.model.QqeResult;
+import com.trading.service.model.TradingData;
 import com.trading.service.service.BinanceRestService;
+import com.trading.service.service.TradingService;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -33,6 +36,9 @@ public class TradingServiceConsumer implements CommandLineRunner{
 	@Autowired
 	private TradingUtil util;
 	@Autowired
+	private TradingService service;
+	
+	@Autowired
 	private WebController t;
 	
 	int period9 = 9;
@@ -45,11 +51,39 @@ public class TradingServiceConsumer implements CommandLineRunner{
 		//long   = 롱
 		//short  = 숏
 		//none = 보합
-		//m5_emaTrand().subscribe();
-		//t.getTicker().subscribe();
+		
+		/* 해야 할거
+		 * 15분봉 롱 숏 보합 구함, 3개심볼이 보합일경우 스킵
+		 * 하나라도 롱 또는 숏일 경우 그 심볼만 가지고 폴링하기 여기까지 하자 
+		 * 그리고 롱숏 어떻게 잡을지 정해보자고
+		*/
 	}
 	
-	public Mono<Void> tasting(){
+	public Mono<List<TradingData>> m15_symbol(){
+		Set<String> tradingSymbol = Set.of("BTCUSDT", "ETHUSDT", "SOLUSDT");
+		List<TradingData> td = new TradingData().getTd();
+		
+		//일단 15분봉 롱 숏 부터 구하자
+		return Mono.defer(() -> Flux.fromIterable(td)
+					.flatMap(data -> service.trand(data.getSymbol(), "15m")
+							.map(trand -> {
+								data.setM15_trand(trand);
+								return data;
+							})
+					).collectList()
+					.flatMap(dataList -> {
+						List<TradingData> rtd = new ArrayList<TradingData>();
+						for (TradingData data : dataList) {
+							if(!data.getM15_trand().equals("none")) {
+								rtd.add(data);
+							}
+						}
+						return Mono.just(rtd);
+					})
+		
+				);
+	}
+	public Mono<Void> tasting1(){
 		/*
 		 * 1분봉, 5분봉 위주로 데이터를 구함.
 		 * 단기추세는 5분봉으로 > 롱추세일 떄 롱을 익절 하고 바로 롱포지션 또 안잡기위해 1분봉 추세변환까지 대기, 5분봉 99선과 현재 가격 간격 확인
