@@ -57,6 +57,16 @@ public class TradingServiceConsumer implements CommandLineRunner{
 		 * 하나라도 롱 또는 숏일 경우 그 심볼만 가지고 폴링하기 여기까지 하자 
 		 * 그리고 롱숏 어떻게 잡을지 정해보자고
 		*/
+		Flux.interval(Duration.ofSeconds(60))
+		.flatMap(sec -> m15_symbol()
+				.flatMap(m15List -> {
+					if(m15List.size() < 1) {
+						return Mono.empty();
+					//여기에 5분봉?
+					}
+				})
+				)
+		
 	}
 	
 	public Mono<List<TradingData>> m15_symbol(){
