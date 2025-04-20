@@ -10,10 +10,6 @@ public class TradingData {
 	
 	
 	public List<TradingData> getTd() {
-		
-		return td;
-	}
-	public void setTd(List<TradingData> td) {
 		TradingData td1 = new TradingData();
 		TradingData td2 = new TradingData();
 		TradingData td3 = new TradingData();
@@ -23,6 +19,18 @@ public class TradingData {
 		td.add(td1);
 		td.add(td2);
 		td.add(td3);
+		return td;
+	}
+	public void setTd(List<TradingData> td) {
+		/*TradingData td1 = new TradingData();
+		TradingData td2 = new TradingData();
+		TradingData td3 = new TradingData();
+		td1.setSymbol("BTCUSDT");
+		td2.setSymbol("ETHUSDT");
+		td3.setSymbol("SOLUSDT");
+		td.add(td1);
+		td.add(td2);
+		td.add(td3);*/
 		this.td = td;
 	
 	}

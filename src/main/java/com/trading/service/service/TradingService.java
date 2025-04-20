@@ -20,6 +20,7 @@ public class TradingService {
 	@Autowired
 	private TradingUtil util;
 	
+	//ema, ssl 로 추세확인
 	public Mono<String> trand(String symbol, String time) {
 		int period9 = 9;
 		int period25 = 25;
@@ -71,6 +72,7 @@ public class TradingService {
 				});
 	}
 	
+	//EMA 추세 확인
 	public Mono<String> trandStr(double ema99, double ema25, double ema9){
 		return Mono.defer(() -> {
 				if(ema99 > ema25 && ema25 > ema9) {

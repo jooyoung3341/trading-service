@@ -2,10 +2,13 @@ package com.trading.service;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -57,7 +60,7 @@ public class TradingServiceConsumer implements CommandLineRunner{
 		 * 하나라도 롱 또는 숏일 경우 그 심볼만 가지고 폴링하기 여기까지 하자 
 		 * 그리고 롱숏 어떻게 잡을지 정해보자고
 		*/
-		Flux.interval(Duration.ofSeconds(60))
+		/*Flux.interval(Duration.ofSeconds(60))
 		.flatMap(sec -> m15_symbol()
 				.flatMap(m15List -> {
 					if(m15List.size() < 1) {
@@ -66,16 +69,57 @@ public class TradingServiceConsumer implements CommandLineRunner{
 					}
 				})
 				)
+		*/
 		
+		AtomicReference<Map<String, List<Double>>> closeSymbol = 
+				new AtomicReference<>(new HashMap<>());
+		
+		List<TradingData> td = new ArrayList<>();
+		TradingData t1 = new TradingData();
+		TradingData t2 = new TradingData();
+		TradingData t3 = new TradingData();
+		t1.setSymbol("BTCUSDT");
+		t2.setSymbol("ETHUSDT");
+		t3.setSymbol("SOLUSDT");
+		
+		td.add(t1);
+		td.add(t2);
+		td.add(t3);
+		//레디스에 리스트로 구할 심볼 넣기
+		// 웹으로 조회, 추가, 삭제 하는거 넣기
+		//하나만 조회하기 넣기 (그거는 테이블 이외에 오른쪽에 조그맣게 조회할수있게끔
+		Flux.interval(Duration.ofSeconds(60))
+		.flatMap(sec -> restService.getCandles()
+				.flatMap(m15List -> {
+					if(m15List.size() < 1) {
+						return Mono.empty();
+					//여기에 5분봉?
+					}
+				})
+				)
+		m15_symbol("5m").subscribe();
 	}
 	
-	public Mono<List<TradingData>> m15_symbol(){
-		Set<String> tradingSymbol = Set.of("BTCUSDT", "ETHUSDT", "SOLUSDT");
-		List<TradingData> td = new TradingData().getTd();
+	public Mono<List<TradingData>> m15_symbol(String time){
+		//Set<String> tradingSymbol = Set.of("BTCUSDT", "ETHUSDT", "SOLUSDT");
+		List<TradingData> td = new ArrayList<>();
+		TradingData t1 = new TradingData();
+		TradingData t2 = new TradingData();
+		TradingData t3 = new TradingData();
+		t1.setSymbol("BTCUSDT");
+		t2.setSymbol("ETHUSDT");
+		t3.setSymbol("SOLUSDT");
 		
+		td.add(t1);
+		td.add(t2);
+		td.add(t3);
+		
+		for (TradingData t : td) {
+			System.out.println("td1 : " + t.getSymbol());
+		}
 		//일단 15분봉 롱 숏 부터 구하자
 		return Mono.defer(() -> Flux.fromIterable(td)
-					.flatMap(data -> service.trand(data.getSymbol(), "15m")
+					.flatMap(data -> service.trand(data.getSymbol(), time)
 							.map(trand -> {
 								data.setM15_trand(trand);
 								return data;
@@ -84,6 +128,7 @@ public class TradingServiceConsumer implements CommandLineRunner{
 					.flatMap(dataList -> {
 						List<TradingData> rtd = new ArrayList<TradingData>();
 						for (TradingData data : dataList) {
+							System.out.println("data : " + data.toString());
 							if(!data.getM15_trand().equals("none")) {
 								rtd.add(data);
 							}
@@ -93,6 +138,8 @@ public class TradingServiceConsumer implements CommandLineRunner{
 		
 				);
 	}
+	
+	
 	public Mono<Void> tasting1(){
 		/*
 		 * 1분봉, 5분봉 위주로 데이터를 구함.
