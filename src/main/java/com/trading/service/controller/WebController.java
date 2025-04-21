@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.trading.service.model.Ticker;
 import com.trading.service.model.Tickers;
 import com.trading.service.service.BinanceRestService;
+import com.trading.service.service.RedisService;
 import com.trading.service.service.TradingService;
 
 import reactor.core.publisher.Flux;
@@ -29,7 +30,8 @@ public class WebController {
 
 	@Autowired
 	BinanceRestService restService;
-	
+	@Autowired
+	RedisService redisService;
 	@Autowired
 	TradingService tradingService;
 	
@@ -96,7 +98,32 @@ public class WebController {
 				})
 		);
 	}
-				
+	
+	public Mono<Map<String, Object>> testGet(){
+		return Mono.defer(() -> redisService.getTradingSymbolList("TradingSymbol")
+				.flatMap(symbolList -> {
+					List<Ticker> tickers = new ArrayList<>();
+					for (String s : symbolList) {
+						Ticker t = new Ticker();
+						t.setSymbol(s);
+						tickers.add(t);
+					}
+					return Flux.fromIterable(tickers)
+							.flatMap(ti -> tradingService.trand(ti.getSymbol(), "5m")
+									.map(trand -> {
+										ti.setM5_trand(trand);
+										return ti;
+									})
+							)
+							.collectList()
+							.map(resultTickers -> {
+								Map<String, Object> map = new HashMap<>();
+								map.put("tickers", resultTickers);
+								return map;
+							});
+				})
+		);
+	}
 
 	@ResponseBody
 	@RequestMapping(value="/getTicker1", method=RequestMethod.GET)

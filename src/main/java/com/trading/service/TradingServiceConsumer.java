@@ -24,6 +24,7 @@ import com.trading.service.model.Candles;
 import com.trading.service.model.QqeResult;
 import com.trading.service.model.TradingData;
 import com.trading.service.service.BinanceRestService;
+import com.trading.service.service.RedisService;
 import com.trading.service.service.TradingService;
 
 import reactor.core.publisher.Flux;
@@ -35,14 +36,17 @@ public class TradingServiceConsumer implements CommandLineRunner{
 	@Autowired
 	private BinanceRestService restService;
 	@Autowired
+	private RedisService redisService;
+	@Autowired
 	private Indicator indicator;
 	@Autowired
 	private TradingUtil util;
 	@Autowired
 	private TradingService service;
-	
 	@Autowired
 	private WebController t;
+	
+	String key = "TradingSymbol";
 	
 	int period9 = 9;
 	int period25 = 25;
@@ -88,16 +92,10 @@ public class TradingServiceConsumer implements CommandLineRunner{
 		//레디스에 리스트로 구할 심볼 넣기
 		// 웹으로 조회, 추가, 삭제 하는거 넣기
 		//하나만 조회하기 넣기 (그거는 테이블 이외에 오른쪽에 조그맣게 조회할수있게끔
-		Flux.interval(Duration.ofSeconds(60))
-		.flatMap(sec -> restService.getCandles()
-				.flatMap(m15List -> {
-					if(m15List.size() < 1) {
-						return Mono.empty();
-					//여기에 5분봉?
-					}
-				})
-				)
-		m15_symbol("5m").subscribe();
+		/*Flux.interval(Duration.ofSeconds(60))
+		.flatMap(sec -> redisService.getTradingSymbolList(key)
+				.flatMap(null)
+				)*/
 	}
 	
 	public Mono<List<TradingData>> m15_symbol(String time){

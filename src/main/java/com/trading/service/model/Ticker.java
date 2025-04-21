@@ -30,7 +30,9 @@ public class Ticker {
 		this.quoteVolume = quoteVolume; this.openTime = openTime; this.closeTime = closeTime;
 	}
 	
-	
+	public Ticker() {
+		
+	}
 	public String getPrice() {
 		return price;
 	}
