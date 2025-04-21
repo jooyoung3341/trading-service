@@ -8,7 +8,9 @@
 </head>
 
 <div layout:fragment="content">
-
+	<div class="col-lg-2"></div>
+	<div class="col-lg-6">
+	
 	<table class="table table-hover" id="ticker">
 		<thead>
 			<tr>
@@ -24,15 +26,29 @@
 		
 		</tbody>
 	</table>
+	</div>
+	
+	 	<div  class="col-lg-4">
+ 	zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+	</div>
 </div>
 
 
 <th:block layout:fragment="script">
 <script>
 window.onload = function(){
-	getTicker();
+	getTicker();allTicker();
 }
 
+function allTicker(){
+	$.ajax({
+		url : "/allTicket",
+		dataType : "json",
+		success : function(data){
+			
+		}
+	})
+}
 function getTicker(){
 	$.ajax({
 		url : "/getTicker",
@@ -45,8 +61,8 @@ function getTicker(){
 
  function tickerTable(data){
 	 disp = "";
-	 console.log(data);
-	 console.log(JSON.stringify(data));
+	 //console.log(data);
+	 //console.log(JSON.stringify(data));
 	 
 	 data.tickerList.forEach(function(item){
 		 tableColor = "";

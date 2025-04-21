@@ -41,9 +41,9 @@ public class BinanceRestService {
 						.build())
 		            	.retrieve()
 		            	.bodyToMono(new ParameterizedTypeReference<List<List<Object>>>() {})
-		            	.map(this::mapToCandles)
-		            	.doOnSuccess(result -> log.info("✅ [요청 성공] 받은 캔들 수: {}", result.size()))
-		                .doOnError(error -> log.error("❌ [요청 실패] Binance API 호출 실패: {}", error.getMessage()));
+		            	.map(this::mapToCandles);
+		            	//.doOnSuccess(result -> log.info("✅ [요청 성공] 받은 캔들 수: {}", result.size()))
+		                //.doOnError(error -> log.error("❌ [요청 실패] Binance API 호출 실패: {}", error.getMessage()));
 		}
 	//getCandles에서 가져온 데이터를 객체화 시킴
 	private List<Candle> mapToCandles(List<List<Object>> raw) {
@@ -82,9 +82,9 @@ public class BinanceRestService {
 						.build())
 		            	.retrieve()
 		            	.bodyToMono(Ticker.class)
-		            	.map(List::of)
-		            	.doOnSuccess(result -> log.info("✅ [요청 성공] 받은 캔들 수: {}", result.size()))
-		                .doOnError(error -> log.error("❌ [요청 실패] Binance API 호출 실패: {}", error.getMessage()));
+		            	.map(List::of);
+		            	//.doOnSuccess(result -> log.info("✅ [요청 성공] 받은 캔들 수: {}", result.size()))
+		                //.doOnError(error -> log.error("❌ [요청 실패] Binance API 호출 실패: {}", error.getMessage()));
     }
     
     //심볼에 대한 현재 데이터 (symbol없으면 전체코인 가져옴)
@@ -94,10 +94,10 @@ public class BinanceRestService {
 						.path("/fapi/v1/ticker/24hr")
 						.build())
 		            	.retrieve()
-		            	.bodyToMono(new ParameterizedTypeReference<List<Ticker>>() {})
+		            	.bodyToMono(new ParameterizedTypeReference<List<Ticker>>() {});
 		            	//.map(this::mapToTicker)
-		            	.doOnSuccess(result -> log.info("✅ [요청 성공] 받은 캔들 수: {}", result.size()))
-		                .doOnError(error -> log.error("❌ [요청 실패] Binance API 호출 실패: {}", error.getMessage()));
+		            	//.doOnSuccess(result -> log.info("✅ [요청 성공] 받은 캔들 수: {}", result.size()))
+		                //.doOnError(error -> log.error("❌ [요청 실패] Binance API 호출 실패: {}", error.getMessage()));
     }
     
     //getTicker24H에서 가져온 데이터를 객체화 시킴

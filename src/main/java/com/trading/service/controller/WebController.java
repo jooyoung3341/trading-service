@@ -39,6 +39,7 @@ public class WebController {
 	public Mono<String> home(Model model) {
 		return Mono.just("web/home");
 	}
+
 	
 	@ResponseBody
 	@RequestMapping(value="/getTicker", method=RequestMethod.GET)
@@ -126,27 +127,14 @@ public class WebController {
 	}
 
 	@ResponseBody
-	@RequestMapping(value="/getTicker1", method=RequestMethod.GET)
-	public Mono<Map<String, Object>> getTicker1() {
+	@RequestMapping(value="/allTicket", method=RequestMethod.GET)
+	public Mono<List<Ticker>> allTicket() {
+		System.out.println("alltic");
 		return Mono.defer(() -> restService.getTickers()
 				.flatMap(ticker -> {
-					Map<String, Object> map = new HashMap<>();
-					//24시간 가격변동 상위 코인 가져오기
-					List<Ticker> topTicker = ticker.stream()
-						    .sorted(Comparator.comparingDouble(data -> -Double.parseDouble(data.getPriceChangePercent())))
-						    .limit(15)
-						    .collect(Collectors.toList());
+					System.out.println("allticket");
 					
-					Set<String> mustIncludeSymbols = Set.of("BTCUSDT", "ETHUSDT", "SOLUSDT");
-					// 1. 필수 심볼 따로 추출
-					List<Ticker> tickers = ticker.stream()
-					    .filter(t -> mustIncludeSymbols.contains(t.getSymbol()))
-					    .collect(Collectors.toList());
-					
-					map.put("topTicker", topTicker);
-					map.put("ticker", tickers);
-					
-					return Mono.just(map);
+					return Mono.just(ticker);
 				})
 		);
 	}

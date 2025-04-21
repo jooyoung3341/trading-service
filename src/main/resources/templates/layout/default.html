@@ -1,4 +1,4 @@
-'<!-- �� ������ Ÿ�Ӹ��� ���̾ƿ��� ����ִ� �ٽ����� -->
+
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlans:layout="http://www.ultraq.net.nz/thymeleaf/layout">
 <head th:replace="fragments/config :: configFragment">	
@@ -6,18 +6,25 @@
 <div>
 <header th:replace="fragments/header :: headerFragment"></header>
 </div>
-	<div>
-		여기에 코인추가 삭제 리스트조회 넣기
-	</div>
-<div class="container">
+	<div class="row">
 
-	<div layout:fragment="content">
-
-	</div>
-</div>
-<div>
-	여기에 코인 클릭 했을 떄 코인정보 넣기
 	
+<div layout:fragment="content" class="container row">
+	<!-- <div layout:fragment="symbols" class="col-lg-2">
+	</div>
+	
+	<div layout:fragment="content" class="col-lg-6">
+	</div>
+	
+ 	<div  class="col-lg-4">
+ 	zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+	</div> -->
+
+</div>
+
+
 </div>
 <th:block layout:fragment="script"></th:block>
+
 </html>
+
