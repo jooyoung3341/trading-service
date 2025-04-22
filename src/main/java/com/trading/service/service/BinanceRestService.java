@@ -14,7 +14,6 @@ import org.json.JSONObject;
 import com.trading.service.common.MapToModel;
 import com.trading.service.model.Candle;
 import com.trading.service.model.Ticker;
-import com.trading.service.model.Tickers;
 
 import reactor.core.publisher.Mono;
 
@@ -82,9 +81,9 @@ public class BinanceRestService {
 						.build())
 		            	.retrieve()
 		            	.bodyToMono(Ticker.class)
-		            	.map(List::of);
+		            	.map(List::of)
 		            	//.doOnSuccess(result -> log.info("✅ [요청 성공] 받은 캔들 수: {}", result.size()))
-		                //.doOnError(error -> log.error("❌ [요청 실패] Binance API 호출 실패: {}", error.getMessage()));
+		                .doOnError(error -> log.error("❌ [요청 실패] Binance API 호출 실패: {}", error.getMessage()));
     }
     
     //심볼에 대한 현재 데이터 (symbol없으면 전체코인 가져옴)

@@ -201,7 +201,7 @@ public class Indicator {
 
 		    return sslList;
 		}
-	
+																		      // 12, 					10, 							6.0
 	 public static QqeResult qqe(List<Double> close, int rsiLength, int smoothingLength, double qqeFactor) {
 	        List<Double> rsi = rsi(close, rsiLength);
 	        List<Double> smoothedRsi = emaList(rsi, smoothingLength);

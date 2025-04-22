@@ -52,4 +52,12 @@ public class RedisService {
         return redisTemplate.opsForList()
                 .remove(key, 0, value);
     }
+    
+    //리스트 특정 데이터 조회
+    public Mono<Boolean> targetTradingSymbol(String key, String targetValue) {
+        return redisTemplate.opsForList()
+                .range(key, 0, -1)              // 전체 리스트 조회
+                .filter(symbol -> symbol.equals(targetValue))  // 원하는 값 필터링
+                .hasElements();                 // 하나라도 있으면 true 반환
+    }
 }

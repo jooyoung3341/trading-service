@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import com.trading.service.common.TradingUtil;
 import com.trading.service.indicator.Indicator;
 import com.trading.service.model.Candles;
+import com.trading.service.model.QqeResult;
 
 import reactor.core.publisher.Mono;
 
@@ -29,9 +30,7 @@ public class TradingService {
 				.flatMap(list -> {
 							Candles candles = new Candles().setCandles(list);
 							List<Double> close = candles.getCloses().subList(0, (candles.getCloses().size() -1));;
-							
-							int m5_close_size = close.size();
-							
+												
 							double ema99 = indicator.ema(close, period99);
 							double ema25 = indicator.ema(close, period25);
 							double ema9 = indicator.ema(close, period9);
@@ -84,4 +83,17 @@ public class TradingService {
 				}
 		});
 	}
+	
+	public Mono<Double> emaPrice(String symbol, String time, int limit){
+		return Mono.defer(() -> restService.getCandles(symbol, time, (limit+11))
+				.flatMap(list -> {
+					Candles candles = new Candles().setCandles(list);
+					List<Double> close = candles.getCloses().subList(0, (candles.getCloses().size() -1));
+					double ema = indicator.ema(close, limit);
+					return Mono.just(ema);
+				})
+		);
+	}
+	
+	
 }
