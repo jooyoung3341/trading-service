@@ -180,6 +180,7 @@ $('#symbolSearch').on('click', function(){
 	 $("#tickerBody").html(disp);
 }; 
 
+//상세보기
 $(document).on("click", "[name='detailBtn']", function(){
 	console.log("상세보기버튼");
 	symbol = $(this).data("id");
@@ -188,30 +189,70 @@ $(document).on("click", "[name='detailBtn']", function(){
 		dataType : "json",
 		data : {"symbol" : symbol},
 		success : function(data){
-			disp = "";
-			disp += "<li class='list-group-item d-flex justify-content-between align-items-center' style='height: 70px;'>";
+			var groupClass = "";
+			disp = "<h1>"+data.price+"</h1>";
+			
+			if(data.price > data.m5_ema25){
+				groupClass = "alert-success";
+			}else{
+				groupClass = "alert-danger";
+			}
+			disp += "<li class='list-group-item d-flex justify-content-between align-items-center "+groupClass+"' style='height: 70px;'>";
 			disp += "<h4>5분 EMA25</h4>";
-		    disp += "<span class='badge bg-primary rounded-pill'><h5>"+data.m5_ema25+"</h5></span>";
+		    disp += "<span class='badge bg-secondary rounded-pill'><h5>"+data.m5_ema25+"</h5></span>";
 		    disp += "</li>";
 		  	
-		  	disp += "<li class='list-group-item d-flex justify-content-between align-items-center' style='height: 70px;'>";
+		    if(data.price > data.m5_ema99){
+				groupClass = "alert-success";
+			}else{
+				groupClass = "alert-danger";
+			}
+		  	disp += "<li class='list-group-item d-flex justify-content-between align-items-center "+groupClass+"' style='height: 70px;'>";
 			disp += "<h4>5분 EMA99</h4>";
-		    disp += "<span class='badge bg-primary rounded-pill'><h5>"+data.m5_ema99+"</h5></span>";
+			disp += "<span class='badge bg-secondary rounded-pill'><h5>"+data.m5_ema99+"</h5></span>";
 		    disp += "</li>";
 		  	
-		  	
-		  	disp += "<li class='list-group-item d-flex justify-content-between align-items-center' style='height: 70px;'>";
+		    if(data.price > data.m15_ema25){
+				groupClass = "alert-success";
+			}else{
+				groupClass = "alert-danger";
+			}
+		  	disp += "<li class='list-group-item d-flex justify-content-between align-items-center "+groupClass+"' style='height: 70px;'>";
 			disp += "<h4>15분 EMA25</h4>";
-		    disp += "<span class='badge bg-primary rounded-pill'><h5>"+data.m15_ema25+"</h5></span>";
+			disp += "<span class='badge bg-secondary rounded-pill'><h5>"+data.m15_ema25+"</h5></span>";
 		    disp += "</li>";
 		  	
-		  	
-		  	disp += "<li class='list-group-item d-flex justify-content-between align-items-center' style='height: 70px;'>";
+		    if(data.price > data.m15_ema99){
+				groupClass = "alert-success";
+			}else{
+				groupClass = "alert-danger";
+			}
+		    disp += "<li class='list-group-item d-flex justify-content-between align-items-center "+groupClass+"' style='height: 70px;'>";
 			disp += "<h4>15분 EMA99</h4>";
-		    disp += "<span class='badge bg-primary rounded-pill'><h5>"+data.m15_ema99+"</h5></span>";
+			disp += "<span class='badge bg-secondary rounded-pill'><h5>"+data.m15_ema99+"</h5></span>";
 		    disp += "</li>";
-		  		 $("#detailGroup").html(disp);
-
+		    
+		    if(0 < data.m5_qqe){
+				groupClass = "alert-success";
+			}else{
+				groupClass = "alert-danger";
+			}
+		    disp += "<li class='list-group-item d-flex justify-content-between align-items-center "+groupClass+"' style='height: 70px;'>";
+			disp += "<h4>5분 QQE</h4>";
+			disp += "<span class='badge bg-secondary rounded-pill'><h5>"+data.m5_qqe+"</h5></span>";
+		    disp += "</li>";
+		    
+		    if(0 < data.m15_qqe){
+				groupClass = "alert-success";
+			}else{
+				groupClass = "alert-danger";
+			}
+		    disp += "<li class='list-group-item d-flex justify-content-between align-items-center "+groupClass+"' style='height: 70px;'>";
+			disp += "<h4>15분 qqe</h4>";
+			disp += "<span class='badge bg-secondary rounded-pill'><h5>"+data.m15_qqe+"</h5></span>";
+		    disp += "</li>";
+		    
+		  	$("#detailGroup").html(disp);
 		}
 	})
 });

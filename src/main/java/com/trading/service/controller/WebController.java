@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.trading.service.indicator.Indicator;
 import com.trading.service.model.Candles;
+import com.trading.service.model.QqeResult;
 import com.trading.service.model.Ticker;
 import com.trading.service.service.BinanceRestService;
 import com.trading.service.service.RedisService;
@@ -209,23 +210,32 @@ public class WebController {
 			String symbol = request.getParameter("symbol");
 			return restService.getCandles(symbol, "5m", (99+11))
 					.flatMap(m5_list -> restService.getCandles(symbol, "15m", (99+11))
-							.flatMap(m15_list -> {
-								Candles m5_candles = new Candles().setCandles(m5_list);
-								List<Double> m5_close = m5_candles.getCloses().subList(0, (m5_candles.getCloses().size() -1));
-								Candles m15_candles = new Candles().setCandles(m15_list);
-								List<Double> m15_close = m15_candles.getCloses().subList(0, (m15_candles.getCloses().size() -1));
-								double m5_ema25 = indicator.ema(m5_close, 25);
-								double m5_ema99 = indicator.ema(m5_close, 99);
-								double m15_ema25 = indicator.ema(m15_close, 25);
-								double m15_ema99 = indicator.ema(m15_close, 99);
-								Map<String, Object> map = new HashMap<>();
-								//Math.floor(value * 10000) / 10000.0;
-								map.put("m5_ema25", Math.floor(m5_ema25 * 100000) / 100000.0);
-								map.put("m5_ema99", Math.floor(m5_ema99 * 100000) / 100000.0);
-								map.put("m15_ema25", Math.floor(m15_ema25 * 100000) / 100000.0);
-								map.put("m15_ema99", Math.floor(m15_ema99 * 100000) / 100000.0);
-								return Mono.just(map);
-							})
+							.flatMap(m15_list -> restService.getPrice(symbol)
+									.flatMap(price -> {
+										Candles m5_candles = new Candles().setCandles(m5_list);
+										List<Double> m5_close = m5_candles.getCloses().subList(0, (m5_candles.getCloses().size() -1));
+										Candles m15_candles = new Candles().setCandles(m15_list);
+										List<Double> m15_close = m15_candles.getCloses().subList(0, (m15_candles.getCloses().size() -1));
+										double m5_ema25 = indicator.ema(m5_close, 25);
+										double m5_ema99 = indicator.ema(m5_close, 99);
+										double m15_ema25 = indicator.ema(m15_close, 25);
+										double m15_ema99 = indicator.ema(m15_close, 99);
+										
+										QqeResult m5_qqe = indicator.qqe(m5_close, 12, 10, 6.0);
+										QqeResult m15_qqe = indicator.qqe(m15_close, 12, 10, 6.0);
+										Map<String, Object> map = new HashMap<>();
+										//Math.floor(value * 10000) / 10000.0;
+										map.put("m5_ema25", Math.floor(m5_ema25 * 100000) / 100000.0);
+										map.put("m5_ema99", Math.floor(m5_ema99 * 100000) / 100000.0);
+										map.put("m15_ema25", Math.floor(m15_ema25 * 100000) / 100000.0);
+										map.put("m15_ema99", Math.floor(m15_ema99 * 100000) / 100000.0);
+										map.put("m5_qqe", (m5_qqe.getSmoothedRsi() - 50));
+										map.put("m15_qqe", (m15_qqe.getSmoothedRsi() - 50));
+										map.put("price", price);
+										return Mono.just(map);
+									})
+
+							)
 				);
 		});
 		

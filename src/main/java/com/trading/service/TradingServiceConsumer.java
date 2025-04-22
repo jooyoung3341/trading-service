@@ -55,6 +55,7 @@ public class TradingServiceConsumer implements CommandLineRunner{
 	@Override
 	public void run(String... args) throws Exception {
 		System.out.println("실행 됨 ");
+		tt().subscribe();
 		//long   = 롱
 		//short  = 숏
 		//none = 보합
@@ -249,7 +250,7 @@ public class TradingServiceConsumer implements CommandLineRunner{
 
 
 	public Mono<Void> tt(){
-		return Mono.defer(() -> restService.getCandles("BTCUSDT", "5m", 10))
+		return Mono.defer(() -> restService.getCandles("BTCUSDT", "15m", 100))
 				.flatMap(list -> {
 					List<Double> closes = list.stream()
 		                    .map(Candle::getClose)
@@ -261,7 +262,7 @@ public class TradingServiceConsumer implements CommandLineRunner{
 		                    .map(Candle::getLow)
 		                    .toList();
 					double ema99 = indicator.ema(closes, 99);
-					System.out.println("ema : " + ema99);
+					//System.out.println("ema : " + ema99);
 					QqeResult primaryQqe = indicator.qqe(closes, 12, 10, 6.0);
 					QqeResult secondQqe = indicator.qqe(closes, 12, 10, 1.61);
 					System.out.println("primaryQqe trendLine : " + primaryQqe.getTrendLine());
@@ -295,8 +296,8 @@ public class TradingServiceConsumer implements CommandLineRunner{
 					boolean isBuySignal = secondaryUp && primaryUp;
 					boolean isSellSignal = secondaryDown && primaryDown;
 					
-					System.out.println("isBuySignal : " + isBuySignal);
-					System.out.println("isSellSignal : " + isSellSignal);
+					//System.out.println("isBuySignal : " + isBuySignal);
+					//System.out.println("isSellSignal : " + isSellSignal);
 					
 					List<Double> ssl = indicator.ssl(high, low, closes, 60);
 					
