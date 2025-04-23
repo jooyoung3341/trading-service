@@ -58,7 +58,7 @@
 	 		
 		</ul>
 		<br/>
-		<button type="button" class="btn btn-danger btn-lg">삭제</button>
+
 	</div>
 	<!-- 개별 상세보기-->
 	
@@ -252,12 +252,28 @@ $(document).on("click", "[name='detailBtn']", function(){
 			disp += "<span class='badge bg-secondary rounded-pill'><h5>"+data.m15_qqe+"</h5></span>";
 		    disp += "</li>";
 		    
+		    disp += "<br/>";
+		    disp += "<button type='button' class='btn btn-danger btn-lg' name='deleteBtn' data-id='"+symbol+"'>삭제</button>";
 		  	$("#detailGroup").html(disp);
 		}
 	})
 });
 
-
+$(document).on("click", "[name='deleteBtn']", function(){
+	var confirm_val = confirm("삭제 하시겠습니까?");
+	if(confirm_val){
+		symbol = $(this).data("id");
+		$.ajax({
+			url : "/deleteSymbol",
+			dataType : "json",
+			data : {"symbol" : symbol},
+			success : function(data){
+				alert("삭제완료");
+			}
+		})	
+	}
+	
+});
 
 </script>
 </th:block>

@@ -45,92 +45,9 @@ public class WebController {
 		return Mono.just("web/home");
 	}
 
-	
-	@ResponseBody
-	@RequestMapping(value="/getTicker1", method=RequestMethod.GET)
-	public Mono<Map<String, Object>> getTicker1() {
-		return Mono.defer(() -> restService.getTickers()
-				.flatMap(ticker -> {
-					Map<String, Object> map = new HashMap<>();
-					//24시간 가격변동 상위 코인 가져오기
-					List<Ticker> topTicker = ticker.stream()
-						    .sorted(Comparator.comparingDouble(data -> -Double.parseDouble(data.getPriceChangePercent())))
-						    .limit(15)
-						    .collect(Collectors.toList());
-					Set<String> mustIncludeSymbols = Set.of("BTCUSDT", "ETHUSDT", "SOLUSDT");
-					// 필수 코인 추출
-					List<Ticker> tickers = ticker.stream()
-					    .filter(t -> mustIncludeSymbols.contains(t.getSymbol()))
-					    .collect(Collectors.toList());
-					
-					// 중복되지 않도록 topTicker에서 tickers에 없는 symbol만 필터링
-					Set<String> existingSymbols = tickers.stream()
-					    .map(Ticker::getSymbol)
-					    .collect(Collectors.toSet());
-					List<Ticker> tickerList = new ArrayList<>();
-					tickerList.addAll(tickers); // tickers 먼저 추가
-					tickerList.addAll(
-					    topTicker.stream()
-					             .filter(t -> !existingSymbols.contains(t.getSymbol())) // 중복 제거
-					             .collect(Collectors.toList())
-					);
-					
-					//List<Ticker> t = new Ticker();
-					return Flux.fromIterable(tickerList)
-				    .flatMap(ti -> tradingService.trand(ti.getSymbol(), "1m")
-				            .map(tran -> {
-				                ti.setM1_trand(tran);  // 여기서 안전하게 수정 가능
-				                return ti;
-				            })
-				    )
-				    .flatMap(ti -> tradingService.trand(ti.getSymbol(), "5m")
-				    		.map(tran -> {
-				    			ti.setM5_trand(tran);  // 여기서 안전하게 수정 가능
-				                return ti;
-				    		})
-				    )
-				    .flatMap(ti -> tradingService.trand(ti.getSymbol(), "15m")
-				    		.map(tran -> {
-				    			ti.setM15_trand(tran);  // 여기서 안전하게 수정 가능
-				                return ti;
-				    		})
-				    )
-				    .collectList()
-				    .map(updatedTickers -> {
-						map.put("tickerList", updatedTickers);
-						return map;
-					});
-					//return Mono.just(map);
-				})
-		);
-	}
-	
-	@ResponseBody
-	@RequestMapping(value="/getTicke12r", method=RequestMethod.GET)
-	public Mono<List<Ticker>> getTicker(){
-		return Mono.defer(() -> redisService.getTradingSymbolList("TradingSymbol")
-				.flatMap(symbolList -> {
-					List<Ticker> tickers = new ArrayList<>();
-					for (String s : symbolList) {
-						Ticker t = new Ticker();
-						t.setSymbol(s);
-						tickers.add(t);
-					}
-					return Flux.fromIterable(tickers)
-							.flatMap(ti -> tradingService.trand(ti.getSymbol(), "5m")
-									.map(trand -> {
-										ti.setM5_trand(trand);
-										return ti;
-									})
-							)
-							.collectList();
-				})
-		);
-	}
-
 	@ResponseBody
 	@RequestMapping(value="/getTicker", method=RequestMethod.GET)
-	public Mono<List<Ticker>> getTicker123(){
+	public Mono<List<Ticker>> getTicker(){
 		return Mono.defer(() -> redisService.getTradingSymbolList("TradingSymbol")
 				.flatMap(symbolList -> {
 					List<Ticker> tickers = new ArrayList<>();
@@ -147,19 +64,19 @@ public class WebController {
 										return ti;
 									})
 								)
-							.flatMap(ti -> tradingService.trand(ti.getSymbol(), "1m")
+							.flatMap(ti -> tradingService.trandCandle(ti.getSymbol(), "1m")
 									.map(trand -> {
 										ti.setM1_trand(trand);
 										return ti;
 									})
 								)
-							.flatMap(ti -> tradingService.trand(ti.getSymbol(), "5m")
+							.flatMap(ti -> tradingService.trandCandle(ti.getSymbol(), "5m")
 									.map(trand -> {
 										ti.setM5_trand(trand);
 										return ti;
 									})
 								)
-							.flatMap(ti -> tradingService.trand(ti.getSymbol(), "15m")
+							.flatMap(ti -> tradingService.trandCandle(ti.getSymbol(), "15m")
 									.map(trand -> {
 										ti.setM15_trand(trand);
 										return ti;
@@ -186,6 +103,16 @@ public class WebController {
 								System.out.println("add re : " + result);
 								return Mono.just("success");
 							});
+				})
+			);
+	}
+	
+	@ResponseBody
+	@RequestMapping(value="/deleteSymbol", method=RequestMethod.GET)
+	public Mono<Boolean> deleteSymbol(HttpServletRequest  request) {
+		return Mono.defer(() -> redisService.removeTradingSymbol("TradingSymbol", request.getParameter("symbol"))
+				.flatMap(remove -> {
+					return Mono.just(true);
 				})
 			);
 	}
