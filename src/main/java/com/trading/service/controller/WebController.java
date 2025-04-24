@@ -16,8 +16,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.trading.service.indicator.Indicator;
+import com.trading.service.common.Indicator;
 import com.trading.service.model.Candles;
+import com.trading.service.model.EnumType;
 import com.trading.service.model.QqeResult;
 import com.trading.service.model.Ticker;
 import com.trading.service.service.BinanceRestService;
@@ -48,7 +49,7 @@ public class WebController {
 	@ResponseBody
 	@RequestMapping(value="/getTicker", method=RequestMethod.GET)
 	public Mono<List<Ticker>> getTicker(){
-		return Mono.defer(() -> redisService.getTradingSymbolList("TradingSymbol")
+		return Mono.defer(() -> redisService.getTradingSymbolList(EnumType.TradingSymbol.value())
 				.flatMap(symbolList -> {
 					List<Ticker> tickers = new ArrayList<>();
 					for (String s : symbolList) {
@@ -64,19 +65,19 @@ public class WebController {
 										return ti;
 									})
 								)
-							.flatMap(ti -> tradingService.trandCandle(ti.getSymbol(), "1m")
+							.flatMap(ti -> tradingService.trandCandle(ti.getSymbol(), EnumType.m1.value())
 									.map(trand -> {
 										ti.setM1_trand(trand);
 										return ti;
 									})
 								)
-							.flatMap(ti -> tradingService.trandCandle(ti.getSymbol(), "5m")
+							.flatMap(ti -> tradingService.trandCandle(ti.getSymbol(), EnumType.m5.value())
 									.map(trand -> {
 										ti.setM5_trand(trand);
 										return ti;
 									})
 								)
-							.flatMap(ti -> tradingService.trandCandle(ti.getSymbol(), "15m")
+							.flatMap(ti -> tradingService.trandCandle(ti.getSymbol(), EnumType.m15.value())
 									.map(trand -> {
 										ti.setM15_trand(trand);
 										return ti;
@@ -86,22 +87,77 @@ public class WebController {
 				})
 		);
 	}
+	
+	@ResponseBody
+	@RequestMapping(value="/getTopVolum", method=RequestMethod.GET)
+	public Mono<List<Ticker>> getTopVolum(){
+		return Mono.defer(() -> restService.getTopVolum()
+				.flatMap(topList -> {
+					return Flux.fromIterable(topList)
+							.flatMap(ti -> tradingService.trandCandle(ti.getSymbol(), EnumType.m1.value())
+									.map(trand -> {
+										ti.setM1_trand(trand);
+										return ti;
+									})
+								)
+							.flatMap(ti -> tradingService.trandCandle(ti.getSymbol(), EnumType.m5.value())
+									.map(trand -> {
+										ti.setM5_trand(trand);
+										return ti;
+									})
+								)
+							.flatMap(ti -> tradingService.trandCandle(ti.getSymbol(), EnumType.m15.value())
+									.map(trand -> {
+										ti.setM15_trand(trand);
+										return ti;
+									})
+								)
+							.collectList();
+				})
+		);
+	}
+	
+	@ResponseBody
+	@RequestMapping(value="/getTopPercent", method=RequestMethod.GET)
+	public Mono<List<Ticker>> getTopPercent(){
+		return Mono.defer(() -> restService.getTopPercent()
+				.flatMap(topList -> {
+					return Flux.fromIterable(topList)
+							.flatMap(ti -> tradingService.trandCandle(ti.getSymbol(), EnumType.m1.value())
+									.map(trand -> {
+										ti.setM1_trand(trand);
+										return ti;
+									})
+								)
+							.flatMap(ti -> tradingService.trandCandle(ti.getSymbol(), EnumType.m5.value())
+									.map(trand -> {
+										ti.setM5_trand(trand);
+										return ti;
+									})
+								)
+							.flatMap(ti -> tradingService.trandCandle(ti.getSymbol(), EnumType.m15.value())
+									.map(trand -> {
+										ti.setM15_trand(trand);
+										return ti;
+									})
+								)
+							.collectList();
+				})
+		);
+	}
+	
 	@ResponseBody
 	@RequestMapping(value="/addSymbol", method=RequestMethod.GET)
 	public Mono<String> addSymbol(HttpServletRequest  request) {
 		return Mono.defer(() -> redisService.targetTradingSymbol("TradingSymbol", request.getParameter("symbol"))
 				.flatMap(targetResult -> {
-					System.out.println("add symbol : " + request.getParameter("symbol"));
-					System.out.println("targetTradingSymbol re  : " + targetResult);
-					
 					if(targetResult) {
 						//중복
-						return Mono.just("fail");
+						return Mono.just(EnumType.Fail.value());
 					}
 					return redisService.addTradingSymbol("TradingSymbol", request.getParameter("symbol"))
 							.flatMap(result -> {
-								System.out.println("add re : " + result);
-								return Mono.just("success");
+								return Mono.just(EnumType.Success.value());
 							});
 				})
 			);
@@ -122,9 +178,7 @@ public class WebController {
 	public Mono<List<Ticker>> allTicket() {
 		System.out.println("alltic");
 		return Mono.defer(() -> restService.getTickers()
-				.flatMap(ticker -> {
-					System.out.println("allticket");
-					
+				.flatMap(ticker -> {					
 					return Mono.just(ticker);
 				})
 		);
@@ -135,8 +189,8 @@ public class WebController {
 	public Mono<Map<String, Object>> symbolDetail(HttpServletRequest  request) {
 		return Mono.defer(() -> {
 			String symbol = request.getParameter("symbol");
-			return restService.getCandles(symbol, "5m", (99+11))
-					.flatMap(m5_list -> restService.getCandles(symbol, "15m", (99+11))
+			return restService.getCandles(symbol, EnumType.m5.value(), (99+11))
+					.flatMap(m5_list -> restService.getCandles(symbol, EnumType.m15.value(), (99+11))
 							.flatMap(m15_list -> restService.getPrice(symbol)
 									.flatMap(price -> {
 										Candles m5_candles = new Candles().setCandles(m5_list);
@@ -167,19 +221,4 @@ public class WebController {
 		});
 		
 	}
-	
-	
-		/*return Mono.zip(
-				restService.getTicker24H("BTCUSDT"),
-				restService.getTicker24H("ETHUSDT"),
-				restService.getTicker24H("SOLUSDT")
-				)
-				.map(tuple -> {
-					List<Ticker24h> r = new ArrayList<>();
-					r.add((Ticker24h) tuple.getT1());
-					r.add((Ticker24h) tuple.getT2());
-					r.add((Ticker24h) tuple.getT3());
-					return r;
-				});*/
-	
 }

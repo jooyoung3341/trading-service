@@ -1,4 +1,4 @@
-package com.trading.service.indicator;
+package com.trading.service.common;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,6 +1,8 @@
 package com.trading.service;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -9,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -17,15 +20,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Service;
 
+import com.trading.service.DB.History;
+import com.trading.service.DB.HistoryService;
+import com.trading.service.common.Indicator;
 import com.trading.service.common.TradingUtil;
 import com.trading.service.controller.WebController;
-import com.trading.service.indicator.Indicator;
 import com.trading.service.model.Candle;
 import com.trading.service.model.Candles;
 import com.trading.service.model.EnumType;
 import com.trading.service.model.QqeResult;
 import com.trading.service.model.Ticker;
-import com.trading.service.model.TradingData;
 import com.trading.service.service.BinanceRestService;
 import com.trading.service.service.RedisService;
 import com.trading.service.service.TradingService;
@@ -47,6 +51,8 @@ public class TradingServiceConsumer implements CommandLineRunner{
 	@Autowired
 	private TradingService tradingService;
 	@Autowired
+	private HistoryService historyService;
+	@Autowired
 	private WebController t;
 	
 	String key = "TradingSymbol";
@@ -64,17 +70,7 @@ public class TradingServiceConsumer implements CommandLineRunner{
 		AtomicReference<Map<String, List<Double>>> closeSymbol = 
 				new AtomicReference<>(new HashMap<>());
 		
-		List<TradingData> td = new ArrayList<>();
-		TradingData t1 = new TradingData();
-		TradingData t2 = new TradingData();
-		TradingData t3 = new TradingData();
-		t1.setSymbol("BTCUSDT");
-		t2.setSymbol("ETHUSDT");
-		t3.setSymbol("SOLUSDT");
-		
-		td.add(t1);
-		td.add(t2);
-		td.add(t3);
+
 		//레디스에 리스트로 구할 심볼 넣기
 		// 웹으로 조회, 추가, 삭제 하는거 넣기
 		//하나만 조회하기 넣기 (그거는 테이블 이외에 오른쪽에 조그맣게 조회할수있게끔
@@ -103,139 +99,131 @@ public class TradingServiceConsumer implements CommandLineRunner{
 		*/
 		
 		//포지션 on = true, off = false
-		AtomicBoolean position = new AtomicBoolean(false);
+		AtomicBoolean isPosition = new AtomicBoolean(false);
 		//처음 일 경우 신호가 오더라도 매매X
 		AtomicBoolean isStart = new AtomicBoolean(true);
 		//추세를 알기위한 15분
 		AtomicReference<String> is15Trand = new AtomicReference<>();
 		//추세를 알기위한 15분
 		AtomicReference<String> is5Trand = new AtomicReference<>();
+		//추세를 알기위한 1분
+		AtomicReference<String> is1Trand = new AtomicReference<>();
+		//감시중인 심볼
+		AtomicReference<String> targetSymbol = new AtomicReference<>();
+		//매매중인 포지션 DB PK 값
+		AtomicLong dbPk = new AtomicLong(0);
+		
 		AtomicInteger timeSeq = new AtomicInteger(0);
 
 			
-
-		
-		/*Mono<Void> loop = Mono.defer(() -> {
-		    if (!hasPosition.get()) {
-		        return Flux.interval(Duration.ofSeconds(5)) // 포지션 있을 때
-		                .flatMap(tick -> doWhenHasPosition()
-		                        .flatMap(pos -> {
-		                            if (!pos) {
-		                                hasPosition.set(false); // 상태 변경
-		                                return Mono.error(new RuntimeException("상태 변경")); // 중지
-		                            }
-		                            return Mono.empty(); // 계속 유지
-		                        }))
-		                .onErrorResume(e -> Mono.empty()) // 에러(상태 변경)시 종료
-		                .then();
-		    } else {
-		        return Flux.interval(Duration.ofSeconds(60)) // 포지션 없을 때
-		                .flatMap(tick -> doWhenNoPosition()
-		                        .flatMap(pos -> {
-		                            if (pos) {
-		                                hasPosition.set(true); // 상태 변경
-		                                return Mono.error(new RuntimeException("상태 변경")); // 중지
-		                            }
-		                            return Mono.empty();
-		                        }))
-		                .onErrorResume(e -> Mono.empty()) // 에러(상태 변경)시 종료
-		                .then();
-		    }
-		}).repeat(); // 상태 전환되면 다시 시작*/
-
-
+		/*Flux.interval(Duration.ofSeconds(10))
+		.flatMap(tick -> {
+			if(!isPosition.get()) {
+				//포지션 없음
+				//return Mono.empty();
+				return redisService.getTradingSymbolList(EnumType.autoSymbol.value())
+						.flatMapMany(Flux::fromIterable)
+						.flatMap(symbol -> tradingService.trandCandle(symbol, EnumType.m1.value())
+								.flatMap(m1_trand -> tradingService.trandCandle(symbol, EnumType.m5.value())
+										.flatMap(m5_trand -> tradingService.trandCandle(symbol, EnumType.m15.value())
+												.flatMap(m15_trand -> {
+													if(m15_trand.equals("none")) {
+	                                    				//횡보면 리턴
+	                                    				return Mono.empty();
+	                                    			}
+                        							if(!is15Trand.get().equals(m15_trand) && !is15Trand.get().equals(null)) {
+	                                    				//추세가 전환되면 다시 처음부터
+	                                    				is15Trand.set(null);
+	                                    				is5Trand.set(null);
+	                                    				is1Trand.set(null);
+	                                    				return Mono.empty();
+	                                    			}
+                        							is1Trand.set(m1_trand);
+                        							is5Trand.set(m5_trand);
+	                                    			is15Trand.set(m15_trand);
+	                                    			return redisAutoPositionOpen(symbol, is15Trand, is5Trand, is1Trand, dbPk, isPosition, targetSymbol).then();
+												})
+												)
+										)
+								);
+			}else {
+				//포지션 있음
+				//포지션 종료 로직 만들어야함. 그리고 손절라인 만들어야함 0.7%정도? 알트는 좀더 크게잡고 
+				return Mono.empty();
+			}
+		});*/
 	}
 	
-	public Mono<Void> redisAutoTrading(AtomicBoolean position, AtomicBoolean isStart, AtomicReference<String> is15Trand, AtomicReference<String> is5Trand) {
-	    return Mono.defer(() ->redisService.getValue("isAuto") // Mono<String>
-	            .flatMap(isAuto -> {
-	                if ("false".equals(isAuto)) {
-	                    // 포지션 없을 때만 60초마다 반복
-	                    return Flux.interval(Duration.ofSeconds(60))
-	                            .flatMap(tick -> redisService.getTradingSymbolList("autoSymbol") // Mono<List<String>>
-	                                    .flatMapMany(Flux::fromIterable) // List<String> → Flux<String>
-	                                    .flatMap(symbol ->tradingService.trandCandle(symbol, "5m") // Mono<String>
-	                                    		.flatMap(m5_trand -> tradingService.trandCandle(symbol, "15m")
-	                                    				.flatMap(m15_trand -> {
-	    	                                    			if(m15_trand.equals("none")) {
-	    	                                    				//횡보면 리턴
-	    	                                    				return Mono.empty();
-	    	                                    			}
-	    	                                    			
-	    	                                    			if(!is15Trand.get().equals(m15_trand) && !is15Trand.get().equals(null)) {
-	    	                                    				//추세가 전환되면 다시 처음부터
-	    	                                    				is15Trand.set(null);
-	    	                                    				is5Trand.set(null);
-	    	                                    				return Mono.empty();
-	    	                                    			}
-	    	                                    			is5Trand.set(m5_trand);
-	    	                                    			is15Trand.set(m15_trand);
-	    	                                    			return Mono.just(symbol);
-	                                    				})
-
-	                                    		)
-	                                    )
-	                                    .next() // 조건에 맞는 symbol 하나만 처리하고 Flux 종료
-	                                    .flatMap(symbol -> {
-	                                        //System.out.println("📌 진입할 심볼: " + symbol);
-	                                       // position.set(true); // 포지션 잡힘
-	                                        return Mono.empty();  //tradingService.enterPosition(symbol); // Mono<Void>
-	                                    })
-	                                    .switchIfEmpty(Mono.fromRunnable(() -> {
-	                                        System.out.println("⚠️ 조건에 맞는 심볼 없음");
-	                                    }))
-	                            )
-	                            .then(); // Flux<Void> → Mono<Void>
-	                } else {
-	                    return Mono.empty(); // 포지션 있으면 아무것도 안함
-	                }
-	            })
-	    );
-	}
 	//15분봉으로만 추세를 보고
 	//5분봉 역추세일 경우 15분봉 ema에 진입?
-	public Mono<Void> redisAutoPositionOpen(String symbol, AtomicBoolean isStart, AtomicReference<String> is15Trand, AtomicReference<String> is5Trand){
-		return Mono.defer(() -> restService.getCandles(symbol, "5m", (99+11))
-				.flatMap(m5_list -> restService.getCandles(symbol, "15m", (99+11))
-						.flatMap(m15_list -> restService.getPrice(symbol)
-								.flatMap(price -> {
-									Candles m5_candles = new Candles().setCandles(m5_list);
-									List<Double> m5_close = m5_candles.getCloses().subList(0, (m5_candles.getCloses().size() -1));
-									Candles m15_candles = new Candles().setCandles(m15_list);
-									List<Double> m15_close = m15_candles.getCloses().subList(0, (m15_candles.getCloses().size() -1));
-									
-									double m5_ema99 = indicator.ema(m5_close, 99);
-									double m15_ema25 = indicator.ema(m15_close, 25);
-									
-									if(is15Trand.get().equals(EnumType.Long.name())) {
-										//롱
-										if(!is5Trand.get().equals(is15Trand)) {
-											//반대일경우에만 포지션 진입
-											if(m5_ema99 < price || m15_ema25 < price) {
-												//진입
+	public Mono<Void> redisAutoPositionOpen(String symbol, AtomicReference<String> is15Trand, AtomicReference<String> is5Trand, AtomicReference<String> is1Trand
+																	,AtomicLong dbPk, AtomicBoolean isPosition, AtomicReference<String> targetSymbol){
+		return Mono.defer(() -> restService.getCandles(symbol, EnumType.m5.value(), (99+11))
+				.flatMap(m5_list -> restService.getCandles(symbol, EnumType.m15.value(), (99+11))
+						.flatMap(m15_list -> restService.getCandles(symbol, EnumType.m1.value(), (99+11))
+								.flatMap(m1_list -> restService.getPrice(symbol)
+										.flatMap(price -> {
+											Candles m5_candles = new Candles().setCandles(m5_list);
+											List<Double> m5_close = m5_candles.getCloses().subList(0, (m5_candles.getCloses().size() -1));
+											Candles m15_candles = new Candles().setCandles(m15_list);
+											List<Double> m15_close = m15_candles.getCloses().subList(0, (m15_candles.getCloses().size() -1));
+											//Candles m1_candles = new Candles().setCandles(m1_list);
+											//List<Double> m1_close = m1_candles.getCloses().subList(0, (m1_candles.getCloses().size() -1));
+											
+											
+											double m5_ema99 = indicator.ema(m5_close, 99);
+											double m15_ema25 = indicator.ema(m15_close, 25);
+											
+											if(is15Trand.get().equals(EnumType.Long.value())) {
+												//롱
+												if(!is1Trand.get().equals(is15Trand)) {
+													//반대일경우에만 포지션 진입
+													if(m5_ema99 < price || m15_ema25 < price) {
+														//롱 진입
+														
+														return positionOpen(dbPk, targetSymbol, isPosition, symbol, price).then();
+													}
+												}
 												
+											}else if(is15Trand.get().equals(EnumType.Short.value())){
+												//숏
+												if(!is1Trand.get().equals(is15Trand)) {
+													//반대일경우에만 포지션 진입
+													if(m5_ema99 > price || m15_ema25 > price) {
+														//숏 진입
+														return positionOpen(dbPk, targetSymbol, isPosition, symbol, price).then();
+													}
+												}
 											}
-										}
-										
-									}else {
-										//숏
-										if(!is5Trand.get().equals(is15Trand)) {
-											//반대일경우에만 포지션 진입
-											if(m5_ema99 > price || m15_ema25 > price) {
-												//진입
-												
-											}
-										}
-										
-									}
-									return Mono.empty();
-								})
+											return Mono.empty();
+										})
 						)
-
+					)
 				)
 		);
 	}
 	
+	public Mono<Void> positionOpen(AtomicLong dbPk, AtomicReference<String> targetSymbol, AtomicBoolean isPosition, String symbol, double price){
+		return Mono.defer(() -> {
+			LocalDateTime now = LocalDateTime.now();
+			History h = new History();
+			h.setIsing(EnumType.x.value());
+			h.setSymbol(symbol);
+			h.setOpenPrice(String.valueOf(price));
+			h.setOpenTime(now);
+			h.setTimeSeq(now.atZone(ZoneId.systemDefault()).toEpochSecond());
+			h.setTrand(EnumType.Short.value());
+			dbPk.set( h.getTimeSeq());
+			targetSymbol.set(symbol);
+			
+			return historyService.save(h)
+					.flatMap(his -> {
+						return Mono.empty();
+					});
+			
+		});
+		
+	}
 	
 	public Mono<Void> tt(){
 		return Mono.defer(() -> restService.getCandles("BTCUSDT", "15m", 100))
@@ -305,4 +293,56 @@ public class TradingServiceConsumer implements CommandLineRunner{
 					return Mono.empty();
 				});
 	}
+	
+	
+	/*public Mono<Void> redisAutoTrading1(AtomicBoolean position, AtomicBoolean isStart, AtomicReference<String> is15Trand, AtomicReference<String> is5Trand, AtomicReference<String> is1Trand) {
+	    return Mono.defer(() ->redisService.getValue("isAuto") // Mono<String>
+	            .flatMap(isAuto -> {
+	                if ("false".equals(isAuto)) {
+	                    // 포지션 없을 때만 60초마다 반복
+	                    return Flux.interval(Duration.ofSeconds(10))
+	                            .flatMap(tick -> redisService.getTradingSymbolList(EnumType.autoSymbol.value()) // Mono<List<String>>
+	                                    .flatMapMany(Flux::fromIterable) // List<String> → Flux<String>
+	                                    .flatMap(symbol ->tradingService.trandCandle(symbol, EnumType.m5.value()) // Mono<String>
+	                                    		.flatMap(m5_trand -> tradingService.trandCandle(symbol, EnumType.m15.value())
+	                                    				.flatMap(m15_trand -> tradingService.trandCandle(symbol, EnumType.m1.value())
+	                                    						.flatMap(m1_trand -> {
+	                                    							if(m15_trand.equals("none")) {
+	    	    	                                    				//횡보면 리턴
+	    	    	                                    				return Mono.empty();
+	    	    	                                    			}
+	                                    							if(!is15Trand.get().equals(m15_trand) && !is15Trand.get().equals(null)) {
+	    	    	                                    				//추세가 전환되면 다시 처음부터
+	    	    	                                    				is15Trand.set(null);
+	    	    	                                    				is5Trand.set(null);
+	    	    	                                    				is1Trand.set(null);
+	    	    	                                    				return Mono.empty();
+	    	    	                                    			}
+	                                    							is1Trand.set(m1_trand);
+	                                    							is5Trand.set(m5_trand);
+	    	    	                                    			is15Trand.set(m15_trand);
+	    	    	                                    			return Mono.just(symbol);
+	                                    						})
+	                                    					)
+	                                    		)
+	                                    )
+	                                    .next() // 조건에 맞는 symbol 하나만 처리하고 Flux 종료
+	                                    .flatMap(symbol -> {
+	                                        //System.out.println("📌 진입할 심볼: " + symbol);
+	                                       // position.set(true); // 포지션 잡힘
+	                                    	//포지션 잡는 함수로 이동
+	                                        return Mono.empty();  //tradingService.enterPosition(symbol); // Mono<Void>
+	                                    })
+	                                    .switchIfEmpty(Mono.fromRunnable(() -> {
+	                                        System.out.println("⚠️ 조건에 맞는 심볼 없음");
+	                                    }))
+	                            )
+	                            .then(); // Flux<Void> → Mono<Void>
+	                } else {
+	                    return Mono.empty(); // 포지션 있으면 아무것도 안함
+	                }
+	            })
+	    );
+	}*/
+	
 }

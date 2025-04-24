@@ -1,9 +1,12 @@
 package com.trading.service.DB;
 
+import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 
-import com.trading.service.model.TradingHistory;
+import reactor.core.publisher.Flux;
 
-public interface HistoryRepository extends ReactiveCrudRepository<TradingHistory, Long>{
+public interface HistoryRepository extends ReactiveCrudRepository<History, Long>{
 
+	@Query("SELECT * FROM history WHERE closeTime BETWEEN :start AND :end")
+	Flux<History> findByCloseTimeBetween(String start, String end);
 }

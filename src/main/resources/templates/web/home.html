@@ -14,51 +14,115 @@
 		
 		<label for="exampleSelect1" class="form-label mt-4">코인 리스트</label>
       		<!--전체 심볼-->
-      		<select class="form-select" id="symbolSelect"></select>
+      	<select class="form-select" id="symbolSelect"></select>
 
-	<fieldset disabled="">
-    	<label class="form-label" for="disabledInput"></label>
-    	<input class="form-control" id="symbolText" type="text" placeholder="" disabled="">
-  	</fieldset>
-  	<br/>
-  	<button type="button" id="addSymbol" class="btn btn-primary">저장</button>
-	<br/>
-	<div class="input-group mb-3">
-		<input type="text" class="form-control" placeholder="symbol Name" id="searchText">
-      	<button class="btn btn-primary" type="button" id="symbolSearch">검색</button>
-    </div>
+		<fieldset disabled="">
+    		<label class="form-label" for="disabledInput"></label>
+    		<input class="form-control" id="symbolText" type="text" placeholder="" disabled="">
+  		</fieldset>
+  			<br/>
+  		<button type="button" id="addSymbol" class="btn btn-primary">저장</button>
+			<br/>
+		<div class="input-group mb-3">
+			<input type="text" class="form-control" placeholder="symbol Name" id="searchText">
+      		<button class="btn btn-primary" type="button" id="symbolSearch">검색</button>
+    	</div>
     
 	</div>
 	<!--삽입 삭제-->
+	
+	
 	<!-- 전체 목록-->
 	<div class="col-lg-6">
-		<table class="table table-hover" id="ticker">
-			<thead>
-				<tr>
-					<th scope="col">심볼</th>
-					<th scope="col">가격</th>
-					<th scope="col">24H%</th>
-					<th scope="col">1분</th>
-					<th scope="col">5분</th>
-					<th scope="col">15분</th>
-					<th scope="col" style="width: 130px;"></th>
-				</tr>
-			</thead>
-			<tbody id="tickerBody">
-			
-			</tbody>
-		</table>
+		<ul class="nav nav-tabs" role="tablist">
+			<li class="nav-item" role="presentation">
+			    <a class="nav-link active" data-bs-toggle="tab" href="#custom" aria-selected="true" role="tab">Custom</a>
+			 </li>
+			<li class="nav-item" role="presentation">
+				<a class="nav-link" data-bs-toggle="tab" href="#volum" aria-selected="false" role="tab" tabindex="-1">TopVolum</a>
+			</li>
+			<li class="nav-item" role="presentation">
+				<a class="nav-link" data-bs-toggle="tab" href="#percent" aria-selected="false" role="tab" tabindex="-1">TopPercent</a>
+			</li>
+		</ul>
+		<!--custom start-->
+		<div id="myTabContent" class="tab-content">
+			<div class="tab-pane fade active show" id="custom" role="tabpanel">
+				<p>
+					<table class="table table-hover" id="ticker">
+						<thead>
+							<tr>
+								<th scope="col">심볼</th>
+								<th scope="col">가격</th>
+								<th scope="col">24H%</th>
+								<th scope="col">거래량</th>
+								<th scope="col">1분</th>
+								<th scope="col">5분</th>
+								<th scope="col">15분</th>
+								<th scope="col" style="width: 130px;"></th>
+							</tr>
+						</thead>
+						<tbody id="tickerBody">
+						
+						</tbody>
+					</table>
+				</p>
+			</div>
+		<!--custom end-->
+		<!--volum start -->
+			<div class="tab-pane fade" id="volum" role="tabpanel">
+			    <p>
+					<table class="table table-hover" id="topVolum">
+						<thead>
+							<tr>
+								<th scope="col">심볼</th>
+								<th scope="col">가격</th>
+								<th scope="col">24H%</th>
+								<th scope="col">거래량</th>
+								<th scope="col">1분</th>
+								<th scope="col">5분</th>
+								<th scope="col">15분</th>
+								<th scope="col" style="width: 130px;"></th>
+							</tr>
+						</thead>
+						<tbody id="topVolumBody">
+						</tbody>
+					</table>
+				</p>
+			</div>
+		<!--volum end-->
+		<!--percent start-->
+			<div class="tab-pane fade" id="percent" role="tabpanel">
+			    <p>
+					<table class="table table-hover" id="topPercent">
+						<thead>
+							<tr>
+								<th scope="col">심볼</th>
+								<th scope="col">가격</th>
+								<th scope="col">24H%</th>
+								<th scope="col">거래량</th>
+								<th scope="col">1분</th>
+								<th scope="col">5분</th>
+								<th scope="col">15분</th>
+								<th scope="col" style="width: 130px;"></th>
+							</tr>
+						</thead>
+						<tbody id="topPercentBody">
+						</tbody>
+					</table>
+				</p>
+			</div>
+		<!--percent end-->
+		</div>
 	</div>
 	<!-- 전체 목록-->
 	
 	<!-- 개별 상세보기-->
 	<div  class="col-lg-4">
 		
- 		<ul class="list-group" style="padding-top: 30px;" id="detailGroup">
-	 		
-		</ul>
+ 		<ul class="list-group" style="padding-top: 30px;" id="detailGroup"></ul>
 		<br/>
-
+		
 	</div>
 	<!-- 개별 상세보기-->
 	
@@ -71,6 +135,17 @@ window.onload = function(){
 	let allSymbolList = [];  // 전역 변수
 	getTicker();
 	allTicker();
+	getPercent();
+	getVolum();
+	
+	   // 1분마다 반복 실행
+    setInterval(() => {
+		console.log("1분 실행 완료")
+        getTicker();
+        allTicker();
+        getPercent();
+        getVolum();
+    }, 60000); // 60000ms = 1분
 }
 
 //select 선택 시 text박스에 넣기
@@ -101,12 +176,32 @@ function getTicker(){
 		url : "/getTicker",
 		dataType : "json",
 		success : function(data){
-			console.log("getTicker : " + data);
-			tickerTable(data);
+			tickerTable(data, "tickerBody");
 		}
 	})
 }
 
+//거래량 상위 20 symbol 데이터 테이블 가져오기
+function getVolum(){
+	$.ajax({
+		url : "/getTopVolum",
+		dataType : "json",
+		success : function(data){
+			tickerTable(data, "topVolumBody");
+		}
+	})
+}
+
+//%상위 20 심볼 데이터 테이블 가져오기
+function getPercent(){
+	$.ajax({
+		url : "/getTopPercent",
+		dataType : "json",
+		success : function(data){
+			tickerTable(data, "topPercentBody");
+		}
+	})
+}
 //선택된 심볼 레디스에 저장하기
 $('#addSymbol').on('click', function(){
 	var confirm_val = confirm("저장 하시겠습니까?");
@@ -126,6 +221,7 @@ $('#addSymbol').on('click', function(){
 					alert("이미 있음");
 					return;
 				}
+				alert("심볼 추가 완료")
 				getTicker();
 			}
 		})
@@ -155,29 +251,41 @@ $('#symbolSearch').on('click', function(){
 
 
 //data.tickerList.forEach(function(item)
- function tickerTable(data){
+ function tickerTable(data, bodyName){
 	 disp = "";
 	$(data).each(function(idx, item){
 		 tableColor = "";
-		 if(item.m15_trand == "short"){
-			 tableColor = "table-danger";
-		 }else if(item.m15_trand == "long"){
-			 tableColor = "table-success";
-		 }else if(item.m15_trand == "none"){
-			 tableColor = "table-primary";
+		 trand1mDisp = "";
+		 trand5mDisp = "";
+		 trand15mDisp = "";
+		 
+		 if(item.m1_trand === "None"){ trand1mDisp = "<span class='badge bg-primary'>"; }
+		 else if (item.m1_trand === "Short"){ trand1mDisp = "<span class='badge bg-danger'>";
+		 }else{ trand1mDisp = "<span class='badge bg-success'>";}
+		 if(item.m5_trand === "None"){ trand5mDisp = "<span class='badge bg-primary'>";}
+		 else if (item.m5_trand === "Short"){trand5mDisp = "<span class='badge bg-danger'>";
+		 }else{trand5mDisp = "<span class='badge bg-success'>";}
+		 if(item.m15_trand === "None"){trand15mDisp = "<span class='badge bg-primary'>";}
+		 else if (item.m15_trand === "Short"){trand15mDisp = "<span class='badge bg-danger'>";}
+		 else{trand15mDisp = "<span class='badge bg-success'>";}
+			 
+		 if(item.m15_trand == "short"){tableColor = "table-danger";
+		 }else if(item.m15_trand == "long"){ableColor = "table-success";
+		 }else if(item.m15_trand == "none"){tableColor = "table-primary";
 		 }
 		 disp += "<tr class='"+tableColor+"'>";
 		 disp += "<th scope='row' style='cursor:pointer' onclick='copyToClipboard(\"" + item.symbol + ".P\")'>" + item.symbol + "</th>";
 		 disp += "<th scope='row'>"+item.lastPrice+"</th>";
 		 disp += "<th scope='row'>"+item.priceChangePercent+"%</th>";
-		 disp += "<th scope='row'>"+item.m1_trand+"</th>";
-		 disp += "<th scope='row'>"+item.m5_trand+"</th>";
-		 disp += "<th scope='row'>"+item.m15_trand+"</th>";
+		 disp += "<th scope='row'>"+item.quoteVolume+"</th>";
+		 disp += "<th scope='row'>"+trand1mDisp+item.m1_trand+"</span></th>";
+		 disp += "<th scope='row'>"+trand5mDisp+item.m5_trand+"</th>";
+		 disp += "<th scope='row'>"+trand15mDisp+item.m15_trand+"</th>";
 		 disp += "<th scope='row'><button type='button' class='btn btn-secondary' data-id='"+item.symbol+"' name='detailBtn'>상세보기</button></th>";
 		 disp += "</tr>";
 		 
 	 })
-	 $("#tickerBody").html(disp);
+	 $("#"+bodyName).html(disp);
 }; 
 
 //상세보기
@@ -259,6 +367,7 @@ $(document).on("click", "[name='detailBtn']", function(){
 	})
 });
 
+//삭제버튼
 $(document).on("click", "[name='deleteBtn']", function(){
 	var confirm_val = confirm("삭제 하시겠습니까?");
 	if(confirm_val){
@@ -269,6 +378,7 @@ $(document).on("click", "[name='deleteBtn']", function(){
 			data : {"symbol" : symbol},
 			success : function(data){
 				alert("삭제완료");
+				getTicker();
 			}
 		})	
 	}

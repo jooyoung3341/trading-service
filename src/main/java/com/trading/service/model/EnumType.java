@@ -2,11 +2,29 @@ package com.trading.service.model;
 
 public enum EnumType {
 
-	Success,
-	Fail,
-	None,
-	Long,
-	Short,
+	Success("Success")
+	,Fail("Fail")
+	,None("None")
+	,Long("Long")
+	,Short("Short")
+	,autoSymbol("autuSymbol")
+	,TradingSymbol("TradingSymbol")
+	,isAuto("isAuto")
+	,DetailSymbol("DetailSymbol")
+	,m1("1m")
+	,m5("5m")
+	,m15("15m")
+	,x("X")
+	,o("O")
 	;
+	final String value;
 	
+	EnumType(String value) {
+       this.value = value;
+   }
+
+	
+   public String value() {
+       return value;
+   }
 }

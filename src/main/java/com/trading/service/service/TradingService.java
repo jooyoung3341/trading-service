@@ -5,8 +5,8 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.trading.service.common.Indicator;
 import com.trading.service.common.TradingUtil;
-import com.trading.service.indicator.Indicator;
 import com.trading.service.model.Candle;
 import com.trading.service.model.Candles;
 import com.trading.service.model.EnumType;
@@ -38,7 +38,6 @@ public class TradingService {
 
 							return trandStr(ema99,ema25,ema9)
 									.flatMap(trand -> {
-										System.out.println("trand : " + trand);
 										List<Double> sslData = indicator.ssl(candles.getHigh(), candles.getLow(), candles.getCloses(), 60);
 										int sslData_size = (sslData.size()-1);
 										List<Double> ssl = sslData.subList((sslData_size-10), sslData_size);
@@ -88,7 +87,6 @@ public class TradingService {
 
 								return trandStr(ema99,ema25,ema9)
 										.flatMap(trand -> {
-											System.out.println("trand : " + trand);
 											List<Double> sslData = indicator.ssl(candles.getHigh(), candles.getLow(), candles.getCloses(), 60);
 											int sslData_size = (sslData.size()-1);
 											List<Double> ssl = sslData.subList((sslData_size-10), sslData_size);
