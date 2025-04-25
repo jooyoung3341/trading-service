@@ -62,6 +62,14 @@ public class WebController {
 									.map(data -> {
 										ti.setLastPrice(data.get(0).getLastPrice());
 										ti.setPriceChangePercent(data.get(0).getPriceChangePercent());
+										String volStr = "";
+										if(data.get(0).getQuoteVolume().contains(".")) {
+											String[] volAry = data.get(0).getQuoteVolume().split("\\.");	
+											volStr = volAry[0];
+										}else {
+											volStr = data.get(0).getQuoteVolume();
+										}
+										ti.setQuoteVolume(volStr);
 										return ti;
 									})
 								)
@@ -192,30 +200,33 @@ public class WebController {
 			return restService.getCandles(symbol, EnumType.m5.value(), (99+11))
 					.flatMap(m5_list -> restService.getCandles(symbol, EnumType.m15.value(), (99+11))
 							.flatMap(m15_list -> restService.getPrice(symbol)
-									.flatMap(price -> {
-										Candles m5_candles = new Candles().setCandles(m5_list);
-										List<Double> m5_close = m5_candles.getCloses().subList(0, (m5_candles.getCloses().size() -1));
-										Candles m15_candles = new Candles().setCandles(m15_list);
-										List<Double> m15_close = m15_candles.getCloses().subList(0, (m15_candles.getCloses().size() -1));
-										double m5_ema25 = indicator.ema(m5_close, 25);
-										double m5_ema99 = indicator.ema(m5_close, 99);
-										double m15_ema25 = indicator.ema(m15_close, 25);
-										double m15_ema99 = indicator.ema(m15_close, 99);
-										
-										QqeResult m5_qqe = indicator.qqe(m5_close, 12, 10, 6.0);
-										QqeResult m15_qqe = indicator.qqe(m15_close, 12, 10, 6.0);
-										Map<String, Object> map = new HashMap<>();
-										//Math.floor(value * 10000) / 10000.0;
-										map.put("m5_ema25", Math.floor(m5_ema25 * 100000) / 100000.0);
-										map.put("m5_ema99", Math.floor(m5_ema99 * 100000) / 100000.0);
-										map.put("m15_ema25", Math.floor(m15_ema25 * 100000) / 100000.0);
-										map.put("m15_ema99", Math.floor(m15_ema99 * 100000) / 100000.0);
-										map.put("m5_qqe", (m5_qqe.getSmoothedRsi() - 50));
-										map.put("m15_qqe", (m15_qqe.getSmoothedRsi() - 50));
-										map.put("price", price);
-										return Mono.just(map);
-									})
-
+									.flatMap(price -> tradingService.getStrongestZone(symbol)
+											.flatMap(strong -> {
+												Candles m5_candles = new Candles().setCandles(m5_list);
+												List<Double> m5_close = m5_candles.getCloses().subList(0, (m5_candles.getCloses().size() -1));
+												Candles m15_candles = new Candles().setCandles(m15_list);
+												List<Double> m15_close = m15_candles.getCloses().subList(0, (m15_candles.getCloses().size() -1));
+												double m5_ema25 = indicator.ema(m5_close, 25);
+												double m5_ema99 = indicator.ema(m5_close, 99);
+												double m15_ema25 = indicator.ema(m15_close, 25);
+												double m15_ema99 = indicator.ema(m15_close, 99);
+												
+												QqeResult m5_qqe = indicator.qqe(m5_close, 12, 10, 6.0);
+												QqeResult m15_qqe = indicator.qqe(m15_close, 12, 10, 6.0);
+												Map<String, Object> map = new HashMap<>();
+												//Math.floor(value * 10000) / 10000.0;
+												map.put("m5_ema25", Math.floor(m5_ema25 * 100000) / 100000.0);
+												map.put("m5_ema99", Math.floor(m5_ema99 * 100000) / 100000.0);
+												map.put("m15_ema25", Math.floor(m15_ema25 * 100000) / 100000.0);
+												map.put("m15_ema99", Math.floor(m15_ema99 * 100000) / 100000.0);
+												map.put("m5_qqe", (m5_qqe.getSmoothedRsi() - 50));
+												map.put("m15_qqe", (m15_qqe.getSmoothedRsi() - 50));
+												map.put("price", price);
+												map.put("strong", strong);
+												
+												return Mono.just(map);
+											})
+									)
 							)
 				);
 		});

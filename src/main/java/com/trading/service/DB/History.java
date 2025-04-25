@@ -3,21 +3,32 @@ package com.trading.service.DB;
 import java.time.LocalDateTime;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 @Table("history")
 public class History {
+	@Column("timeSeq")
 	@Id
 	private long timeSeq;				// = pk
 	private String symbol; 			//= 심볼
+	@Column("openTime")
 	private LocalDateTime openTime;			// = 오픈시간
+	@Column("openPrice")
 	private String openPrice;			// = 오픈가격
+	@Column("closeTime")
 	private LocalDateTime closeTime; 		//= 닫은시간
+	@Column("closePrice")
 	private String closePrice;		// = 닫은시간
+	@Column("qtyOpenPrice")
 	private String qtyOpenPrice; 	//= 들어간 자산 가격
+	@Column("qtyClosePrice")
 	private String qtyClosePrice; 	//= 종료 후 자산 가격
+	@Column("percent")
 	private String percent; 			//= 이 포지션으로 얻은 percent
+	@Column("ising")
 	private String ising; 				//= x 면 포지션 유지중 , o면 포지션 종료
+	@Column("trand")
 	private String trand;  				//포지션타입 (long, short)
 	/*
 	 * CREATE TABLE `trading`.`history` (

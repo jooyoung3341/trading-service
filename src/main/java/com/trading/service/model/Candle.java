@@ -9,6 +9,13 @@ public class Candle {
     private double close;
     private double volume;
     
+    public double getMinPrice() {
+    	return Math.min(open, close);
+    }
+    
+    public double getMaxPrice() {
+	return Math.max(open, close);
+    }
 
     public Candle(long openTime, double open, double high, double low, double close, double volume) {
         this.openTime = openTime;

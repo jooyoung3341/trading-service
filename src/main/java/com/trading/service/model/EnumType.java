@@ -14,6 +14,7 @@ public enum EnumType {
 	,m1("1m")
 	,m5("5m")
 	,m15("15m")
+	,h1("1h")
 	,x("X")
 	,o("O")
 	;

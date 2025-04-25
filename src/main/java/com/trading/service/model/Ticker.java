@@ -107,7 +107,14 @@ public class Ticker {
 		return quoteVolume;
 	}
 	public void setQuoteVolume(String quoteVolume) {
-		this.quoteVolume = quoteVolume;
+		String volStr = "";
+		if(quoteVolume.contains(".")) {
+			String[] volAry = quoteVolume.split("\\.");	
+			volStr = volAry[0];
+		}else {
+			volStr = quoteVolume;
+		}
+		this.quoteVolume = volStr;
 	}
 	public String getOpenTime() {
 		return openTime;

@@ -107,6 +107,14 @@ public class BinanceRestService {
                 .bodyToMono(new ParameterizedTypeReference<List<Ticker>>() {})
                 .map(tickers -> tickers.stream()
                         .filter(ticker -> ticker.getQuoteVolume() != null)
+                        .filter(ticker -> {
+                            String symbol = ticker.getSymbol();
+                            return !symbol.endsWith("USDC")
+                                    && !symbol.equals("BTCUSDT")
+                                    && !symbol.equals("ETHUSDT")
+                                    && !symbol.equals("BNXUSDT")
+                                    && !symbol.startsWith("1000");
+                        })
                         .sorted((a, b) -> Double.compare(
                             Double.parseDouble(b.getQuoteVolume()),
                             Double.parseDouble(a.getQuoteVolume())))
@@ -124,6 +132,12 @@ public class BinanceRestService {
                 .bodyToMono(new ParameterizedTypeReference<List<Ticker>>() {})
                 .map(tickers -> tickers.stream()
                         .filter(ticker -> ticker.getPriceChangePercent() != null)
+                        .filter(ticker -> {
+                            String symbol = ticker.getSymbol();
+                            return !symbol.endsWith("USDC")
+                            		&& !symbol.equals("BNXUSDT")
+                            		&& !symbol.startsWith("1000");
+                        })
                         .sorted((a, b) -> Double.compare(
                             Double.parseDouble(b.getPriceChangePercent()),
                             Double.parseDouble(a.getPriceChangePercent())))

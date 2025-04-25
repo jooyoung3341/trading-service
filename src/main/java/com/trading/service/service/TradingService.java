@@ -1,6 +1,10 @@
 package com.trading.service.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -144,5 +148,48 @@ public class TradingService {
 		);
 	}
 	
+	public Mono<Map<Double, Double>> getVolumeProfile(String symbol){
+		return Mono.defer(() -> restService.getCandles(symbol, EnumType.h1.value(), 121)
+				.flatMap(list -> {					
+					double minPrice = list.stream().mapToDouble(Candle::getMinPrice).min().orElse(0.0);
+					double maxPrice = list.stream().mapToDouble(Candle::getMaxPrice).max().orElse(0.0);
+					double priceRange = maxPrice - minPrice;
+					
+					  // 가격 범위가 너무 좁으면 zoneCount 줄이고 step도 최소값 보정
+		            int zoneCount = 60;
+		            double step = priceRange / zoneCount;
+		            if (step <= 0) step = 0.0000001; // 초저가 코인 대응
+
+					Map<Double, Double> volumeMap = new TreeMap<>();
+					for (Candle c : list) {
+						double low = c.getMinPrice();
+						double high = c.getMaxPrice();
+						double volume = c.getVolume();
+						
+						 for (double p = low; p <= high; p += step) {
+							// 정밀 계산을 위해 BigDecimal 사용
+							 BigDecimal bdStep = BigDecimal.valueOf(step);
+		                     BigDecimal bdP = BigDecimal.valueOf(p);
+
+		                     BigDecimal priceZone = bdP.divide(bdStep, 8, RoundingMode.FLOOR).multiply(bdStep);
+		                     priceZone = priceZone.setScale(8, RoundingMode.HALF_UP); // 8자리 반올림
+
+		                     volumeMap.merge(priceZone.doubleValue(), volume, Double::sum);
+		                    }
+					}
+					
+					return Mono.just(volumeMap);
+				})
+			);
+	}
 	
+	public Mono<Double> getStrongestZone(String symbol){
+		return Mono.defer(() -> getVolumeProfile(symbol)
+				.map(volMap -> volMap.entrySet().stream()
+						.max(Map.Entry.comparingByValue())
+						.map(Map.Entry::getKey)
+						.orElse(0.0)						
+						)
+				);
+	}
 }

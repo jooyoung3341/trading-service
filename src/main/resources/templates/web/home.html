@@ -52,13 +52,13 @@
 					<table class="table table-hover" id="ticker">
 						<thead>
 							<tr>
-								<th scope="col">심볼</th>
-								<th scope="col">가격</th>
-								<th scope="col">24H%</th>
-								<th scope="col">거래량</th>
-								<th scope="col">1분</th>
-								<th scope="col">5분</th>
-								<th scope="col">15분</th>
+								<th scope="col" data-sort="symbol">심볼</th>
+								<th scope="col" data-sort="price">가격</th>
+								<th scope="col" data-sort="percent">24H%</th>
+								<th scope="col" data-sort="vol">거래량(USDT)</th>
+								<th scope="col" data-sort="m1">1분</th>
+								<th scope="col" data-sort="m5">5분</th>
+								<th scope="col" data-sort="m15">15분</th>
 								<th scope="col" style="width: 130px;"></th>
 							</tr>
 						</thead>
@@ -75,13 +75,13 @@
 					<table class="table table-hover" id="topVolum">
 						<thead>
 							<tr>
-								<th scope="col">심볼</th>
-								<th scope="col">가격</th>
-								<th scope="col">24H%</th>
-								<th scope="col">거래량</th>
-								<th scope="col">1분</th>
-								<th scope="col">5분</th>
-								<th scope="col">15분</th>
+								<th scope="col" data-sort="symbol">심볼</th>
+								<th scope="col" data-sort="price">가격</th>
+								<th scope="col" data-sort="percent">24H%</th>
+								<th scope="col" data-sort="vol">거래량(USDT)</th>
+								<th scope="col" data-sort="m1">1분</th>
+								<th scope="col" data-sort="m5">5분</th>
+								<th scope="col" data-sort="m15">15분</th>
 								<th scope="col" style="width: 130px;"></th>
 							</tr>
 						</thead>
@@ -97,13 +97,13 @@
 					<table class="table table-hover" id="topPercent">
 						<thead>
 							<tr>
-								<th scope="col">심볼</th>
-								<th scope="col">가격</th>
-								<th scope="col">24H%</th>
-								<th scope="col">거래량</th>
-								<th scope="col">1분</th>
-								<th scope="col">5분</th>
-								<th scope="col">15분</th>
+								<th scope="col" data-sort="symbol">심볼</th>
+								<th scope="col" data-sort="price">가격</th>
+								<th scope="col" data-sort="percent">24H%</th>
+								<th scope="col" data-sort="vol">거래량(USDT)</th>
+								<th scope="col" data-sort="m1">1분</th>
+								<th scope="col" data-sort="m5">5분</th>
+								<th scope="col" data-sort="m15">15분</th>
 								<th scope="col" style="width: 130px;"></th>
 							</tr>
 						</thead>
@@ -298,8 +298,12 @@ $(document).on("click", "[name='detailBtn']", function(){
 		data : {"symbol" : symbol},
 		success : function(data){
 			var groupClass = "";
-			disp = "<h1>"+data.price+"</h1>";
+			disp = "<h1>현재 가격 : "+data.price+"</h1><br/>";
 			
+			disp += "<li class='list-group-item d-flex justify-content-between align-items-center alert-secondary' style='height: 70px;'>";
+			disp += "<h4>1H 매물대</h4>";
+		    disp += "<span class='badge bg-secondary rounded-pill'><h5>"+data.strong+"</h5></span>";
+		    disp += "</li>";
 			if(data.price > data.m5_ema25){
 				groupClass = "alert-success";
 			}else{
@@ -381,10 +385,40 @@ $(document).on("click", "[name='deleteBtn']", function(){
 				getTicker();
 			}
 		})	
-	}
+	} 
 	
 });
 
+//정렬
+$(document).on("click", "th[data-sort]", function () {
+    const $header = $(this);
+    const sortKey = $header.data("sort");
+    const bodyId = $header.closest("table").find("tbody").attr("id");
+    const rows = $("#" + bodyId + " tr").get();
+
+    // 이전 정렬 상태를 저장/읽기 위한 커스텀 속성
+    const currentOrder = $header.data("order") || "desc"; // 기본 내림차순
+    const nextOrder = currentOrder === "asc" ? "desc" : "asc";
+    $header.data("order", nextOrder); // 다음 클릭을 위해 저장
+
+    rows.sort(function (a, b) {
+        const valA = $(a).find("th, td").eq($header.index()).text().replace('%', '').replace(',', '');
+        const valB = $(b).find("th, td").eq($header.index()).text().replace('%', '').replace(',', '');
+
+        const numA = parseFloat(valA) || 0;
+        const numB = parseFloat(valB) || 0;
+
+        return nextOrder === "asc" ? numA - numB : numB - numA;
+    });
+
+    $.each(rows, function (index, row) {
+        $("#" + bodyId).append(row);
+    });
+
+    // 🔄 정렬 방향 표시 (선택사항)
+    $("th[data-sort]").not($header).removeClass("sorted-asc sorted-desc");
+    $header.removeClass("sorted-asc sorted-desc").addClass(nextOrder === "asc" ? "sorted-asc" : "sorted-desc");
+});
 </script>
 </th:block>
 

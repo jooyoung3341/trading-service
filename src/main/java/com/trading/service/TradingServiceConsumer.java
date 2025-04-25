@@ -116,7 +116,34 @@ public class TradingServiceConsumer implements CommandLineRunner{
 		AtomicInteger timeSeq = new AtomicInteger(0);
 
 			
-		/*Flux.interval(Duration.ofSeconds(10))
+		//process(is1Trand, is5Trand, is15Trand, isPosition, dbPk, timeSeq, targetSymbol);
+		
+		//aa().subscribe();
+	}
+	
+	public Mono<Void> aa() {
+		return Mono.defer(() -> {
+			History h = new History();
+			h.setTimeSeq(123123);
+			return historyService.insertHistory(h)
+					.flatMap(z -> {
+						System.out.println("z : " + z);
+						return Mono.empty();
+					})
+					.onErrorResume(e -> {
+						System.out.println("오류 : " + e);
+						System.out.println("오류 : " + e.getMessage());
+						return Mono.empty();
+						
+					})
+					.then();
+		});
+	}
+	
+	
+	public void process(AtomicReference<String> is1Trand, AtomicReference<String> is5Trand, AtomicReference<String> is15Trand,
+									AtomicBoolean isPosition, AtomicLong dbPk, AtomicInteger timeSeq, AtomicReference<String> targetSymbol) {
+		Flux.defer(() -> Flux.interval(Duration.ofSeconds(10))
 		.flatMap(tick -> {
 			if(!isPosition.get()) {
 				//포지션 없음
@@ -151,8 +178,12 @@ public class TradingServiceConsumer implements CommandLineRunner{
 				//포지션 종료 로직 만들어야함. 그리고 손절라인 만들어야함 0.7%정도? 알트는 좀더 크게잡고 
 				return Mono.empty();
 			}
-		});*/
-	}
+		})
+	).subscribe();
+}
+	
+	
+	
 	
 	//15분봉으로만 추세를 보고
 	//5분봉 역추세일 경우 15분봉 ema에 진입?
