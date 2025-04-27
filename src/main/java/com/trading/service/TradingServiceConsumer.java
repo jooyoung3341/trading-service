@@ -55,8 +55,6 @@ public class TradingServiceConsumer implements CommandLineRunner{
 	@Autowired
 	private WebController t;
 	
-	String key = "TradingSymbol";
-	
 	int period9 = 9;
 	int period25 = 25;
 	int period99 = 99;
@@ -64,20 +62,7 @@ public class TradingServiceConsumer implements CommandLineRunner{
 	@Override
 	public void run(String... args) throws Exception {
 		System.out.println("실행 됨 ");
-		//tt().subscribe();
-		
-		
-		AtomicReference<Map<String, List<Double>>> closeSymbol = 
-				new AtomicReference<>(new HashMap<>());
-		
 
-		//레디스에 리스트로 구할 심볼 넣기
-		// 웹으로 조회, 추가, 삭제 하는거 넣기
-		//하나만 조회하기 넣기 (그거는 테이블 이외에 오른쪽에 조그맣게 조회할수있게끔
-		/*Flux.interval(Duration.ofSeconds(60))
-		.flatMap(sec -> redisService.getTradingSymbolList(key)
-				.flatMap(null)
-				)*/
 		//long   = 롱
 		//short  = 숏
 		//none = 보합
@@ -112,6 +97,8 @@ public class TradingServiceConsumer implements CommandLineRunner{
 		AtomicReference<String> targetSymbol = new AtomicReference<>();
 		//매매중인 포지션 DB PK 값
 		AtomicLong dbPk = new AtomicLong(0);
+		//포지션 진입 가격
+		AtomicReference<Double> isPrice = new AtomicReference<>();
 		
 		AtomicInteger timeSeq = new AtomicInteger(0);
 
@@ -120,29 +107,11 @@ public class TradingServiceConsumer implements CommandLineRunner{
 		
 		//aa().subscribe();
 	}
-	
-	public Mono<Void> aa() {
-		return Mono.defer(() -> {
-			History h = new History();
-			h.setTimeSeq(123123);
-			return historyService.insertHistory(h)
-					.flatMap(z -> {
-						System.out.println("z : " + z);
-						return Mono.empty();
-					})
-					.onErrorResume(e -> {
-						System.out.println("오류 : " + e);
-						System.out.println("오류 : " + e.getMessage());
-						return Mono.empty();
-						
-					})
-					.then();
-		});
-	}
-	
+
 	
 	public void process(AtomicReference<String> is1Trand, AtomicReference<String> is5Trand, AtomicReference<String> is15Trand,
-									AtomicBoolean isPosition, AtomicLong dbPk, AtomicInteger timeSeq, AtomicReference<String> targetSymbol) {
+									AtomicBoolean isPosition, AtomicLong dbPk, AtomicInteger timeSeq, AtomicReference<String> targetSymbol,
+									AtomicReference<Double> isPrice) {
 		Flux.defer(() -> Flux.interval(Duration.ofSeconds(10))
 		.flatMap(tick -> {
 			if(!isPosition.get()) {
@@ -168,7 +137,7 @@ public class TradingServiceConsumer implements CommandLineRunner{
                         							is1Trand.set(m1_trand);
                         							is5Trand.set(m5_trand);
 	                                    			is15Trand.set(m15_trand);
-	                                    			return redisAutoPositionOpen(symbol, is15Trand, is5Trand, is1Trand, dbPk, isPosition, targetSymbol).then();
+	                                    			return redisAutoPositionOpen(symbol, is15Trand, is5Trand, is1Trand, dbPk, isPosition, targetSymbol, isPrice).then();
 												})
 												)
 										)
@@ -184,11 +153,17 @@ public class TradingServiceConsumer implements CommandLineRunner{
 	
 	
 	
-	
+
+/*	public Mono<Void> redisPositionClose(String symbol, AtomicReference<String> is15Trand, AtomicReference<String> is5Trand, AtomicReference<String> is1Trand
+														,AtomicLong dbPk, AtomicBoolean isPosition, AtomicReference<String> targetSymbol, AtomicReference<Double> isPrice){
+		return Mono.defer(() -> {
+			
+		})
+	}*/
 	//15분봉으로만 추세를 보고
 	//5분봉 역추세일 경우 15분봉 ema에 진입?
 	public Mono<Void> redisAutoPositionOpen(String symbol, AtomicReference<String> is15Trand, AtomicReference<String> is5Trand, AtomicReference<String> is1Trand
-																	,AtomicLong dbPk, AtomicBoolean isPosition, AtomicReference<String> targetSymbol){
+																	,AtomicLong dbPk, AtomicBoolean isPosition, AtomicReference<String> targetSymbol, AtomicReference<Double> isPrice){
 		return Mono.defer(() -> restService.getCandles(symbol, EnumType.m5.value(), (99+11))
 				.flatMap(m5_list -> restService.getCandles(symbol, EnumType.m15.value(), (99+11))
 						.flatMap(m15_list -> restService.getCandles(symbol, EnumType.m1.value(), (99+11))
@@ -211,8 +186,10 @@ public class TradingServiceConsumer implements CommandLineRunner{
 													//반대일경우에만 포지션 진입
 													if(m5_ema99 < price || m15_ema25 < price) {
 														//롱 진입
-														
-														return positionOpen(dbPk, targetSymbol, isPosition, symbol, price).then();
+														History h = new History();
+														h.setTrand(EnumType.Long.value());
+														isPrice.set(price);
+														return positionOpen(dbPk, targetSymbol, isPosition, symbol, price, h).then();
 													}
 												}
 												
@@ -222,7 +199,10 @@ public class TradingServiceConsumer implements CommandLineRunner{
 													//반대일경우에만 포지션 진입
 													if(m5_ema99 > price || m15_ema25 > price) {
 														//숏 진입
-														return positionOpen(dbPk, targetSymbol, isPosition, symbol, price).then();
+														History h = new History();
+														h.setTrand(EnumType.Short.value());
+														isPrice.set(price);
+														return positionOpen(dbPk, targetSymbol, isPosition, symbol, price, h).then();
 													}
 												}
 											}
@@ -234,10 +214,10 @@ public class TradingServiceConsumer implements CommandLineRunner{
 		);
 	}
 	
-	public Mono<Void> positionOpen(AtomicLong dbPk, AtomicReference<String> targetSymbol, AtomicBoolean isPosition, String symbol, double price){
+	public Mono<Void> positionOpen(AtomicLong dbPk, AtomicReference<String> targetSymbol, AtomicBoolean isPosition, String symbol, 
+													double price, History h){
 		return Mono.defer(() -> {
 			LocalDateTime now = LocalDateTime.now();
-			History h = new History();
 			h.setIsing(EnumType.x.value());
 			h.setSymbol(symbol);
 			h.setOpenPrice(String.valueOf(price));
@@ -249,6 +229,7 @@ public class TradingServiceConsumer implements CommandLineRunner{
 			
 			return historyService.save(h)
 					.flatMap(his -> {
+						System.out.println(h.getTrand() + "  진 입 ");
 						return Mono.empty();
 					});
 			

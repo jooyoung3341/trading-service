@@ -15,4 +15,16 @@ public class TradingUtil {
 		        .atZone(ZoneId.of("Asia/Seoul"))
 		        .toLocalDateTime();
 	}
+	
+    public double calculatePercentageChange(double basePrice, double percent) {
+        return basePrice + (basePrice * percent / 100.0);
+    }
+    
+    public double minusPercent(double price, double percenter) {
+    	return calculatePercentageChange(price, -percenter);
+    }
+    
+    public double plusPercent(double price, double percenter) {
+    	return calculatePercentageChange(price, percenter);
+    }
 }
