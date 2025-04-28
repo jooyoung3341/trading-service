@@ -1,12 +1,16 @@
 package com.trading.service.common;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.springframework.stereotype.Component;
 
+import com.trading.service.model.EnumType;
 import com.trading.service.model.QqeResult;
 import com.trading.service.model.SslShape;
+
+import reactor.core.publisher.Mono;
 
 @Component
 public class Indicator {
@@ -262,4 +266,89 @@ public class Indicator {
 	 private static double avg(List<Double> list) {
 		    return list.stream().mapToDouble(d -> d).average().orElse(0.0);
 		}
+	 
+	 //=============================
+	 //																					88						52						63
+	 //																					32						27						50
+	  public static Mono<String> getSTC(List<Double> closePrices, int stcLength, int fastLength, int slowLength) {
+	        return Mono.fromSupplier(() -> {
+	            int size = closePrices.size();
+	            if (size < slowLength + 2) { // 최소한 STC 2개 비교할 수 있어야 함
+	                throw new IllegalArgumentException("Not enough data for STC color signal detection");
+	            }
+
+	            double alpha = 0.5; // smoothing factor
+
+	            List<Double> macdList = calculateMACD(closePrices, fastLength, slowLength);
+	            List<Double> k1List = calculateStochastic(macdList, stcLength);
+	            List<Double> smoothedK1List = calculateSmoothedEMA(k1List, alpha);
+
+	            List<Double> k2List = calculateStochastic(smoothedK1List, stcLength);
+	            List<Double> stcList = calculateSmoothedEMA(k2List, alpha);
+
+	            double currentStc = stcList.get(stcList.size() - 1);
+	            double previousStc = stcList.get(stcList.size() - 2);
+
+	            if (currentStc > previousStc) {
+	                return EnumType.Long.value();  // 초록색 (green)
+	            } else {
+	                return EnumType.Short.value(); // 빨간색 (red)
+	            }
+	        });
+	    }
+	  
+
+	    public static List<Double> calculateEMA(List<Double> data, int period) {
+	        List<Double> emaList = new ArrayList<>();
+	        double multiplier = 2.0 / (period + 1);
+	        double ema = data.get(0); // 초기값은 첫 번째 값
+	        
+	        for (int i = 0; i < data.size(); i++) {
+	            double price = data.get(i);
+	            ema = (price - ema) * multiplier + ema;
+	            emaList.add(ema);
+	        }
+	        return emaList;
+	    }
+	    
+	    public static List<Double> calculateMACD(List<Double> closePrices, int fastPeriod, int slowPeriod) {
+	        List<Double> fastEMA = calculateEMA(closePrices, fastPeriod);
+	        List<Double> slowEMA = calculateEMA(closePrices, slowPeriod);
+	        List<Double> macd = new ArrayList<>();
+	        
+	        for (int i = 0; i < closePrices.size(); i++) {
+	            macd.add(fastEMA.get(i) - slowEMA.get(i));
+	        }
+	        return macd;
+	    }
+
+	    public static List<Double> calculateStochastic(List<Double> data, int period) {
+	        List<Double> stochasticList = new ArrayList<>();
+	        
+	        for (int i = 0; i < data.size(); i++) {
+	            if (i < period) {
+	                stochasticList.add(50.0); // 초기값 (Pine Script에서 초기값 처리 비슷하게)
+	            } else {
+	                List<Double> subList = data.subList(i - period, i + 1);
+	                double lowest = Collections.min(subList);
+	                double highest = Collections.max(subList);
+	                double value = highest - lowest == 0 ? 50.0 : (data.get(i) - lowest) / (highest - lowest) * 100.0;
+	                stochasticList.add(value);
+	            }
+	        }
+	        return stochasticList;
+	    }
+
+	    public static List<Double> calculateSmoothedEMA(List<Double> data, double alpha) {
+	        List<Double> smoothedList = new ArrayList<>();
+	        double prev = data.get(0);
+	        
+	        for (double value : data) {
+	            prev = prev + alpha * (value - prev);
+	            smoothedList.add(prev);
+	        }
+	        return smoothedList;
+	    }
+	 
+	 
 }

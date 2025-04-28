@@ -204,8 +204,11 @@ public class WebController {
 			return restService.getCandles(symbol, EnumType.m5.value(), (99+11))
 					.flatMap(m5_list -> restService.getCandles(symbol, EnumType.m15.value(), (99+11))
 							.flatMap(m15_list -> restService.getPrice(symbol)
-									.flatMap(price -> tradingService.getStrongestZone(symbol)
-											.flatMap(strong -> {
+									.flatMap(price -> tradingService.getStrongestZone(symbol, EnumType.h1.value())
+											.flatMap(h1_strong -> tradingService.getStrongestZone(symbol, EnumType.m15.value())
+													.flatMap(m15_strong -> {
+														
+													
 												Candles m5_candles = new Candles().setCandles(m5_list);
 												List<Double> m5_close = m5_candles.getCloses().subList(0, (m5_candles.getCloses().size() -1));
 												Candles m15_candles = new Candles().setCandles(m15_list);
@@ -226,10 +229,13 @@ public class WebController {
 												map.put("m5_qqe", (m5_qqe.getSmoothedRsi() - 50));
 												map.put("m15_qqe", (m15_qqe.getSmoothedRsi() - 50));
 												map.put("price", price);
-												map.put("strong", strong);
+												map.put("h1_strong", h1_strong);
+												map.put("m15_strong", m15_strong);
+												
 												
 												return Mono.just(map);
-											})
+													})
+											)
 									)
 							)
 				);

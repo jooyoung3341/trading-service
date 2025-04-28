@@ -42,7 +42,7 @@ public class TradingService {
 							double ema25 = indicator.ema(close, period25);
 							double ema9 = indicator.ema(close, period9);
 
-							return trandStr(ema99,ema25,ema9)
+							return trandStr1(ema99,ema25,ema9)
 									.flatMap(trand -> {
 										List<Double> sslData = indicator.ssl(candles.getHigh(), candles.getLow(), candles.getCloses(), 60);
 										int sslData_size = (sslData.size()-1);
@@ -164,8 +164,8 @@ public class TradingService {
 
 	
 	//매물대
-	public Mono<Map<Double, Double>> getVolumeProfile(String symbol){
-		return Mono.defer(() -> restService.getCandles(symbol, EnumType.h1.value(), 121)
+	public Mono<Map<Double, Double>> getVolumeProfile(String symbol, String time){
+		return Mono.defer(() -> restService.getCandles(symbol, time, 121)
 				.flatMap(list -> {					
 					double minPrice = list.stream().mapToDouble(Candle::getMinPrice).min().orElse(0.0);
 					double maxPrice = list.stream().mapToDouble(Candle::getMaxPrice).max().orElse(0.0);
@@ -199,8 +199,8 @@ public class TradingService {
 			);
 	}
 	
-	public Mono<Double> getStrongestZone(String symbol){
-		return Mono.defer(() -> getVolumeProfile(symbol)
+	public Mono<Double> getStrongestZone(String symbol, String time){
+		return Mono.defer(() -> getVolumeProfile(symbol, time)
 				.map(volMap -> volMap.entrySet().stream()
 						.max(Map.Entry.comparingByValue())
 						.map(Map.Entry::getKey)

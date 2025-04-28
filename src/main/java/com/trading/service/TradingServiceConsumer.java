@@ -122,9 +122,10 @@ public class TradingServiceConsumer implements CommandLineRunner{
 		stc, qqe 모드 추가해서
 		isStart를 넣어서 이게 true면 처음이니깐 지금이 롱추세면 롱진입x 그리고 false로 바꾸고 숏에만 진입하게끔
 		
+		
 		매물대 15분봉도 같이 구현
 	*/
-	public void process1(AtomicReference<String> is1Trand, AtomicReference<String> is5Trand, AtomicReference<String> is15Trand,
+	/*public void process1(AtomicReference<String> is1Trand, AtomicReference<String> is5Trand, AtomicReference<String> is15Trand,
 									AtomicBoolean isPosition, AtomicLong dbPk, AtomicInteger timeSeq, AtomicReference<String> targetSymbol,
 									AtomicReference<Double> isPrice) {
 		Flux.defer(() -> Flux.interval(Duration.ofSeconds(10))
@@ -188,7 +189,7 @@ public class TradingServiceConsumer implements CommandLineRunner{
 					}
 				})
 		);
-	}
+	}*/
 	
 	public void process(AtomicReference<String> is1Trand, AtomicReference<String> is5Trand, AtomicReference<String> is15Trand,
 									AtomicBoolean isPosition, AtomicLong dbPk, AtomicInteger timeSeq, AtomicReference<String> targetSymbol,

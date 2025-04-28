@@ -302,7 +302,11 @@ $(document).on("click", "[name='detailBtn']", function(){
 			
 			disp += "<li class='list-group-item d-flex justify-content-between align-items-center alert-secondary' style='height: 70px;'>";
 			disp += "<h4>1H 매물대</h4>";
-		    disp += "<span class='badge bg-secondary rounded-pill'><h5>"+data.strong+"</h5></span>";
+		    disp += "<span class='badge bg-secondary rounded-pill'><h5>"+data.h1_strong+"</h5></span>";
+		    disp += "</li>";
+		    disp += "<li class='list-group-item d-flex justify-content-between align-items-center alert-secondary' style='height: 70px;'>";
+			disp += "<h4>15M 매물대</h4>";
+		    disp += "<span class='badge bg-secondary rounded-pill'><h5>"+data.m15_strong+"</h5></span>";
 		    disp += "</li>";
 			if(data.price > data.m5_ema25){
 				groupClass = "alert-success";
