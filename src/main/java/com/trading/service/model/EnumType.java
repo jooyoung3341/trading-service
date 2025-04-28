@@ -7,7 +7,7 @@ public enum EnumType {
 	,None("None")
 	,Long("Long")
 	,Short("Short")
-	,autoSymbol("autuSymbol")
+	,autoSymbol("autoSymbol")
 	,TradingSymbol("TradingSymbol")
 	,isAuto("isAuto")
 	,DetailSymbol("DetailSymbol")
@@ -17,6 +17,10 @@ public enum EnumType {
 	,h1("1h")
 	,x("X")
 	,o("O")
+	,BUY("BUY")
+	,SELL("SELL")
+	,candle("110")
+	
 	;
 	final String value;
 	

@@ -7,6 +7,6 @@ import reactor.core.publisher.Flux;
 
 public interface HistoryRepository extends ReactiveCrudRepository<History, Long>{
 
-	@Query("SELECT * FROM history WHERE closeTime BETWEEN :start AND :end")
-	Flux<History> findByCloseTimeBetween(String start, String end);
+	@Query("SELECT * FROM history WHERE openTime BETWEEN :start AND :end")
+	Flux<History> getOpenTime(String start, String end);
 }

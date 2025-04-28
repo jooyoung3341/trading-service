@@ -26,12 +26,16 @@ public class HistoryService {
 	        return repo.findAll();
 	    }
 
+	    public Mono<History> findByPk(Long timeSeq) {
+	        return repo.findById(timeSeq);
+	    }
+	    
 	    public Mono<History> save(History history) {
 	        return repo.save(history);
 	    }
 	    
-	    public Flux<History> getByCloseTimeRange(String start, String end) {
-	        return repo.findByCloseTimeBetween(start, end);
+	    public Flux<History> getOpenTime(String start, String end) {
+	        return repo.getOpenTime(start, end);
 	    }
 	    
 	    public Mono<History> insertHistory(History history) {

@@ -31,6 +31,7 @@ import com.trading.service.model.EnumType;
 import com.trading.service.model.QqeResult;
 import com.trading.service.model.Ticker;
 import com.trading.service.service.BinanceRestService;
+import com.trading.service.service.BinanceService;
 import com.trading.service.service.RedisService;
 import com.trading.service.service.TradingService;
 
@@ -44,6 +45,8 @@ public class TradingServiceConsumer implements CommandLineRunner{
 	private BinanceRestService restService;
 	@Autowired
 	private RedisService redisService;
+	@Autowired
+	private BinanceService binanceService;
 	@Autowired
 	private Indicator indicator;
 	@Autowired
@@ -103,17 +106,96 @@ public class TradingServiceConsumer implements CommandLineRunner{
 		AtomicInteger timeSeq = new AtomicInteger(0);
 
 			
-		//process(is1Trand, is5Trand, is15Trand, isPosition, dbPk, timeSeq, targetSymbol);
+		process(is1Trand, is5Trand, is15Trand, isPosition, dbPk, timeSeq, targetSymbol, isPrice);
 		
 		//aa().subscribe();
 	}
 
+	/*
+	 * 15분봉 ema9, ema25 정배열, 역배열 구하기 -> 15분봉 ssl 선이 현재가격 위치(정배열이면 위에 위치해야하고 역배열이면 아래에 위치해야 추세확인)
+		-> 1분봉 ema9, ema25 ssl최근데이터5개를 구해서 15분봉과 반대추세인지 확인(1분봉 ema25아래에 있을경우로 변경?)
+		 -> 반대추세였다가 다시 15분봉이랑 같은추세로 전환시 신호
+		
+		15분봉 ema, ssl 위 아래로만?
+		저러면 고점에서 매수할 수 도 있어서 5분봉 ssl선을 구하는것도 좋은 방법일듯 
+		
+		stc, qqe 모드 추가해서
+		isStart를 넣어서 이게 true면 처음이니깐 지금이 롱추세면 롱진입x 그리고 false로 바꾸고 숏에만 진입하게끔
+		
+		매물대 15분봉도 같이 구현
+	*/
+	public void process1(AtomicReference<String> is1Trand, AtomicReference<String> is5Trand, AtomicReference<String> is15Trand,
+									AtomicBoolean isPosition, AtomicLong dbPk, AtomicInteger timeSeq, AtomicReference<String> targetSymbol,
+									AtomicReference<Double> isPrice) {
+		Flux.defer(() -> Flux.interval(Duration.ofSeconds(10))
+				.flatMap(tick -> {
+					if(!isPosition.get()) {
+						//포지션 없음
+						return redisService.getTradingSymbolList(EnumType.autoSymbol.value())
+								.flatMapMany(Flux::fromIterable)
+								.flatMap(symbol -> restService.getPrice(symbol)
+									.flatMap(price -> restService.getCandles(symbol, EnumType.m15.value(), Integer.parseInt(EnumType.candle.value()))
+										.flatMap(m15_list -> {
+											Candles m15_candles = new Candles().setCandles(m15_list);
+											List<Double> m15_close = m15_candles.getCloses().subList(0, (m15_candles.getCloses().size() -1));
+											
+											double m15_ema25 = indicator.ema(m15_close, 25);
+											double m15_ema9 = indicator.ema(m15_close, 9);
+											String m15_trand = "";
+											if(m15_ema25 > m15_ema9) {
+												//숏 역배
+												m15_trand = EnumType.Short.value();
+												return Mono.just(EnumType.Short.name());
+											}else if(m15_ema25 < m15_ema9) {
+												//롱 정배
+												m15_trand = EnumType.Long.value();
+												return Mono.just(EnumType.Long.name());
+											}
+											
+											List<Double> sslData = indicator.ssl(m15_candles.getHigh(), m15_candles.getLow(), m15_candles.getCloses(), 60);
+											int sslData_size = (sslData.size()-1);
+											List<Double> ssl = sslData.subList((sslData_size-10), sslData_size);
+											double sslDouble = ssl.get(ssl.size()-1);
+											if(price > sslDouble) {
+												//롱
+												if(!m15_trand.equals(EnumType.Long.value())) {
+													//추세가 다르면 리턴
+													return Mono.empty();
+												}
+											}else {
+												//숏
+												if(!m15_trand.equals(EnumType.Short.value())) {
+													//추세가 다르면 리턴
+													return Mono.empty();
+												}
+											}
+											return restService.getCandles(symbol, EnumType.m5.value(), Integer.parseInt(EnumType.candle.value()))
+													.flatMap(m5_list -> {
+														Candles m5_candles = new Candles().setCandles(m5_list);
+														List<Double> m5_close = m5_candles.getCloses().subList(0, (m5_candles.getCloses().size() -1));
+														
+														List<Double> sslData = indicator.ssl(m15_candles.getHigh(), m15_candles.getLow(), m15_candles.getCloses(), 60);
+														int sslData_size = (sslData.size()-1);
+														List<Double> ssl = sslData.subList((sslData_size-10), sslData_size);
+													});
+													
+											
+									});
+								)
+							);
+					}else {
+						//포지션 있음
+					}
+				})
+		);
+	}
 	
 	public void process(AtomicReference<String> is1Trand, AtomicReference<String> is5Trand, AtomicReference<String> is15Trand,
 									AtomicBoolean isPosition, AtomicLong dbPk, AtomicInteger timeSeq, AtomicReference<String> targetSymbol,
 									AtomicReference<Double> isPrice) {
 		Flux.defer(() -> Flux.interval(Duration.ofSeconds(10))
 		.flatMap(tick -> {
+			System.out.println("isPosition : " + isPosition.get());
 			if(!isPosition.get()) {
 				//포지션 없음
 				//return Mono.empty();
@@ -123,20 +205,29 @@ public class TradingServiceConsumer implements CommandLineRunner{
 								.flatMap(m1_trand -> tradingService.trandCandle(symbol, EnumType.m5.value())
 										.flatMap(m5_trand -> tradingService.trandCandle(symbol, EnumType.m15.value())
 												.flatMap(m15_trand -> {
-													if(m15_trand.equals("none")) {
+													System.out.println("m15_trand : " + m15_trand);
+													if(m15_trand.equals(EnumType.None.value())) {
 	                                    				//횡보면 리턴
 	                                    				return Mono.empty();
 	                                    			}
-                        							if(!is15Trand.get().equals(m15_trand) && !is15Trand.get().equals(null)) {
-	                                    				//추세가 전환되면 다시 처음부터
-	                                    				is15Trand.set(null);
-	                                    				is5Trand.set(null);
-	                                    				is1Trand.set(null);
-	                                    				return Mono.empty();
-	                                    			}
+													if(is15Trand.get() != null) {
+														if(!is15Trand.get().equals(m15_trand) && !is15Trand.get().equals(null)) {
+		                                    				//추세가 전환되면 다시 처음부터
+		                                    				System.out.println("추세 전환");
+	                        								is15Trand.set(null);
+		                                    				is5Trand.set(null);
+		                                    				is1Trand.set(null);
+		                                    				return Mono.empty();
+		                                    			}
+													}
+													
                         							is1Trand.set(m1_trand);
                         							is5Trand.set(m5_trand);
 	                                    			is15Trand.set(m15_trand);
+	                                    			System.out.println("m1_trand : " + m1_trand);
+	                                    			System.out.println("m5_trand : " + m5_trand);
+	                                    			System.out.println("m15_trand : " + m15_trand);
+	                                    			
 	                                    			return redisAutoPositionOpen(symbol, is15Trand, is5Trand, is1Trand, dbPk, isPosition, targetSymbol, isPrice).then();
 												})
 												)
@@ -145,21 +236,60 @@ public class TradingServiceConsumer implements CommandLineRunner{
 			}else {
 				//포지션 있음
 				//포지션 종료 로직 만들어야함. 그리고 손절라인 만들어야함 0.7%정도? 알트는 좀더 크게잡고 
-				return Mono.empty();
+				return historyService.findByPk(dbPk.get())
+						.flatMap(h -> restService.getPrice(targetSymbol.get())
+									.flatMap(price -> {
+										boolean isPosi = false;
+										History his = new History();
+										if(h.getTrand().equals(EnumType.Long.value())) {
+											//long
+											if(price < util.minusPercent(isPrice.get(), 0.7)) {
+												//stop
+												isPosi = true;
+											}else if(price > util.plusPercent(isPrice.get(), 0.7)) {
+												//take
+												isPosi = true;
+											}
+										}else if(h.getTrand().equals(EnumType.Short.value())) {
+											//short
+											if(price < util.minusPercent(isPrice.get(), 0.7)) {
+												//take
+												isPosi = true;
+											}else if(price > util.plusPercent(isPrice.get(), 0.7)) {
+												//stop
+												isPosi = true;
+											}
+											
+											System.out.println("isPosi : " + isPosi);
+											if(isPosi == false) {
+												return Mono.empty();
+											}
+										}
+										LocalDateTime now = LocalDateTime.now();
+										his.setTimeSeq(dbPk.get());
+										his.setClosePrice(String.valueOf(price));
+										his.setCloseTime(now);
+										his.setIsing(EnumType.o.value());
+										his.setPercent(String.valueOf(util.calculatePercentage(isPrice.get(), price)));
+										return historyService.save(his)
+												.flatMap(r -> {
+													System.out.println("포지션 종료");
+													isPosition.set(false);
+													targetSymbol.set("");
+													dbPk.set(0);
+													isPrice.set(0.0);
+													return Mono.empty();
+												});
+										
+									})
+						);
 			}
 		})
 	).subscribe();
 }
 	
 	
-	
 
-/*	public Mono<Void> redisPositionClose(String symbol, AtomicReference<String> is15Trand, AtomicReference<String> is5Trand, AtomicReference<String> is1Trand
-														,AtomicLong dbPk, AtomicBoolean isPosition, AtomicReference<String> targetSymbol, AtomicReference<Double> isPrice){
-		return Mono.defer(() -> {
-			
-		})
-	}*/
 	//15분봉으로만 추세를 보고
 	//5분봉 역추세일 경우 15분봉 ema에 진입?
 	public Mono<Void> redisAutoPositionOpen(String symbol, AtomicReference<String> is15Trand, AtomicReference<String> is5Trand, AtomicReference<String> is1Trand
@@ -181,11 +311,13 @@ public class TradingServiceConsumer implements CommandLineRunner{
 											double m15_ema25 = indicator.ema(m15_close, 25);
 											
 											if(is15Trand.get().equals(EnumType.Long.value())) {
+												System.out.println("롱 대기");
 												//롱
 												if(!is1Trand.get().equals(is15Trand)) {
 													//반대일경우에만 포지션 진입
 													if(m5_ema99 < price || m15_ema25 < price) {
 														//롱 진입
+														System.out.println("롱 진입");
 														History h = new History();
 														h.setTrand(EnumType.Long.value());
 														isPrice.set(price);
@@ -195,10 +327,12 @@ public class TradingServiceConsumer implements CommandLineRunner{
 												
 											}else if(is15Trand.get().equals(EnumType.Short.value())){
 												//숏
+												System.out.println("숏 대기");
 												if(!is1Trand.get().equals(is15Trand)) {
 													//반대일경우에만 포지션 진입
 													if(m5_ema99 > price || m15_ema25 > price) {
 														//숏 진입
+														System.out.println("숏 진입");
 														History h = new History();
 														h.setTrand(EnumType.Short.value());
 														isPrice.set(price);
@@ -224,12 +358,13 @@ public class TradingServiceConsumer implements CommandLineRunner{
 			h.setOpenTime(now);
 			h.setTimeSeq(now.atZone(ZoneId.systemDefault()).toEpochSecond());
 			h.setTrand(EnumType.Short.value());
-			dbPk.set( h.getTimeSeq());
-			targetSymbol.set(symbol);
 			
 			return historyService.save(h)
 					.flatMap(his -> {
 						System.out.println(h.getTrand() + "  진 입 ");
+						dbPk.set( h.getTimeSeq());
+						targetSymbol.set(symbol);
+						isPosition.set(true);
 						return Mono.empty();
 					});
 			
@@ -305,56 +440,6 @@ public class TradingServiceConsumer implements CommandLineRunner{
 					return Mono.empty();
 				});
 	}
-	
-	
-	/*public Mono<Void> redisAutoTrading1(AtomicBoolean position, AtomicBoolean isStart, AtomicReference<String> is15Trand, AtomicReference<String> is5Trand, AtomicReference<String> is1Trand) {
-	    return Mono.defer(() ->redisService.getValue("isAuto") // Mono<String>
-	            .flatMap(isAuto -> {
-	                if ("false".equals(isAuto)) {
-	                    // 포지션 없을 때만 60초마다 반복
-	                    return Flux.interval(Duration.ofSeconds(10))
-	                            .flatMap(tick -> redisService.getTradingSymbolList(EnumType.autoSymbol.value()) // Mono<List<String>>
-	                                    .flatMapMany(Flux::fromIterable) // List<String> → Flux<String>
-	                                    .flatMap(symbol ->tradingService.trandCandle(symbol, EnumType.m5.value()) // Mono<String>
-	                                    		.flatMap(m5_trand -> tradingService.trandCandle(symbol, EnumType.m15.value())
-	                                    				.flatMap(m15_trand -> tradingService.trandCandle(symbol, EnumType.m1.value())
-	                                    						.flatMap(m1_trand -> {
-	                                    							if(m15_trand.equals("none")) {
-	    	    	                                    				//횡보면 리턴
-	    	    	                                    				return Mono.empty();
-	    	    	                                    			}
-	                                    							if(!is15Trand.get().equals(m15_trand) && !is15Trand.get().equals(null)) {
-	    	    	                                    				//추세가 전환되면 다시 처음부터
-	    	    	                                    				is15Trand.set(null);
-	    	    	                                    				is5Trand.set(null);
-	    	    	                                    				is1Trand.set(null);
-	    	    	                                    				return Mono.empty();
-	    	    	                                    			}
-	                                    							is1Trand.set(m1_trand);
-	                                    							is5Trand.set(m5_trand);
-	    	    	                                    			is15Trand.set(m15_trand);
-	    	    	                                    			return Mono.just(symbol);
-	                                    						})
-	                                    					)
-	                                    		)
-	                                    )
-	                                    .next() // 조건에 맞는 symbol 하나만 처리하고 Flux 종료
-	                                    .flatMap(symbol -> {
-	                                        //System.out.println("📌 진입할 심볼: " + symbol);
-	                                       // position.set(true); // 포지션 잡힘
-	                                    	//포지션 잡는 함수로 이동
-	                                        return Mono.empty();  //tradingService.enterPosition(symbol); // Mono<Void>
-	                                    })
-	                                    .switchIfEmpty(Mono.fromRunnable(() -> {
-	                                        System.out.println("⚠️ 조건에 맞는 심볼 없음");
-	                                    }))
-	                            )
-	                            .then(); // Flux<Void> → Mono<Void>
-	                } else {
-	                    return Mono.empty(); // 포지션 있으면 아무것도 안함
-	                }
-	            })
-	    );
-	}*/
+
 	
 }

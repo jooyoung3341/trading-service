@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.trading.service.DB.History;
+import com.trading.service.DB.HistoryService;
 import com.trading.service.common.Indicator;
 import com.trading.service.model.Candles;
 import com.trading.service.model.EnumType;
@@ -40,6 +42,8 @@ public class WebController {
 	TradingService tradingService;
 	@Autowired
 	Indicator indicator;
+	@Autowired
+	HistoryService historyService;
 	
 	@RequestMapping(value="/", method=RequestMethod.GET)
 	public Mono<String> home(Model model) {
@@ -229,7 +233,23 @@ public class WebController {
 									)
 							)
 				);
-		});
-		
+		});	
 	}
+	
+	/*
+	 * ================================
+	*/
+	@ResponseBody
+	@RequestMapping(value="/getHistory", method=RequestMethod.GET)
+	public Mono<List<History>> getHistory(HttpServletRequest request) {
+		return Mono.defer(() -> historyService.getOpenTime(request.getParameter("startDate"), request.getParameter("endDate"))
+					.collectList()
+				);
+	}
+	
+	@RequestMapping(value="/autoTrading", method=RequestMethod.GET)
+	public Mono<String> autoTrading(Model model) {
+		return Mono.just("web/autoTrading");
+	}
+	
 }
