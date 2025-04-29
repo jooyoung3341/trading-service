@@ -200,6 +200,11 @@ public class TradingServiceConsumer implements CommandLineRunner{
 		);
 	}
 	
+	/*
+	 * stc, 정배여부 두개돌린다?
+	 * 포지션 진입 기준(롱기준) : 15분봉 ema 9 25 99 정배열, stc 초록색 일 경우 5분봉 ema9, 25 정배 stc 빨강 -> 초록 될떄 
+	 * 포지션 종료 기준(롱기준) : price가 5분 ema20아래, ssl 역추세 아래, stc 역추세 빨강
+	*/
 	
 	/*
 	 * 15분봉 ema9, ema25 정배열, 역배열 구하기 -> 15분봉 ssl 선이 현재가격 위치(정배열이면 위에 위치해야하고 역배열이면 아래에 위치해야 추세확인)
