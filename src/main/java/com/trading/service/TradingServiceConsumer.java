@@ -33,6 +33,7 @@ import com.trading.service.model.Ticker;
 import com.trading.service.service.BinanceRestService;
 import com.trading.service.service.BinanceService;
 import com.trading.service.service.RedisService;
+import com.trading.service.service.TeleService;
 import com.trading.service.service.TradingService;
 
 import reactor.core.publisher.Flux;
@@ -57,7 +58,8 @@ public class TradingServiceConsumer implements CommandLineRunner{
 	private HistoryService historyService;
 	@Autowired
 	private WebController t;
-	
+	@Autowired
+	private TeleService teleService;
 	int period9 = 9;
 	int period25 = 25;
 	int period99 = 99;
@@ -88,10 +90,10 @@ public class TradingServiceConsumer implements CommandLineRunner{
 		
 		//포지션 on = true, off = false
 		AtomicBoolean isPosition = new AtomicBoolean(false);
-		//처음 일 경우 신호가 오더라도 매매X
-		AtomicBoolean isStart = new AtomicBoolean(true);
+
 		//추세를 알기위한 15분
 		AtomicReference<String> is15Trand = new AtomicReference<>();
+		AtomicReference<Map<String, Object>> teleMap = new AtomicReference<>();
 		//추세를 알기위한 15분
 		AtomicReference<String> is5Trand = new AtomicReference<>();
 		//추세를 알기위한 1분
@@ -105,12 +107,100 @@ public class TradingServiceConsumer implements CommandLineRunner{
 		
 		AtomicInteger timeSeq = new AtomicInteger(0);
 
-			
-		process(is1Trand, is5Trand, is15Trand, isPosition, dbPk, timeSeq, targetSymbol, isPrice);
+		AtomicReference<String> teleText = new AtomicReference<>();
 		
+		//process(is1Trand, is5Trand, is15Trand, isPosition, dbPk, timeSeq, targetSymbol, isPrice);
+		//처음 일 경우 신호가 오더라도 매매X
+		//true = 처음 , false = 이후
+		AtomicBoolean isStart = new AtomicBoolean(true);
+		//teleProcess(isStart);
 		//aa().subscribe();
 	}
 
+	
+	public void teleProcess(AtomicBoolean isStart) {
+		System.out.println("teleProcess 최초 실행");
+		Flux.defer(() -> Flux.interval(Duration.ofSeconds(60))
+				.flatMap(tick -> redisService.getTradingSymbolList(EnumType.TradingSymbol.value())
+						.flatMapMany(Flux::fromIterable)
+						.flatMap(symbol -> restService.getPrice(symbol)
+								.flatMap(price -> tradingService.trandType(symbol, EnumType.m15.value())
+										.flatMap(m15_trand -> tradingService.trandType(symbol, EnumType.m5.value())
+												.flatMap(m5_trand -> {
+													System.out.println("teleProcess start : " + symbol);
+													if(isStart.get()) {
+														//처음 실행이면 
+														return saveTele(symbol, m5_trand, m15_trand)
+																.flatMap(r -> {
+																			return Mono.empty();
+																		});
+													}
+													//처음실행 아니면
+													return redisService.getValue(EnumType.m5_tele.value()+symbol)
+															.flatMap(m5_tele -> redisService.getValue(EnumType.m15_tele.value()+symbol)
+																	.flatMap(m15_tele -> {
+																		if(m5_tele.equals("start") && m15_tele.equals("start")) {
+																			//중간에 추가된 심볼
+																			return saveTele(symbol, m5_trand, m15_trand)
+																					.flatMap(r -> {
+																								return Mono.empty();
+																							});
+																		}
+																		String teleText = "";
+																		if(!m5_tele.equals(m5_trand)) {
+																			//추세가 바뀌면 텔레그램 전송
+																			teleText = teleStr(m5_tele, m5_trand, symbol, String.valueOf(price), "5분봉");
+																		}
+																		if(!m15_tele.equals(m15_trand)) {
+																			//추세가 바뀌면 텔레그램 전송
+																			if(!teleText.equals("")) {
+																				teleText += "\n";
+																			}
+																			teleText += teleStr(m15_tele, m15_trand, symbol, String.valueOf(price), "15분봉");
+																		}
+																		
+																		if(!teleText.equals("")) {
+																			
+																			//텔레그램 전송
+																			return teleService.sendMessage(teleText)
+																					.flatMap(r -> saveTele(symbol, m5_tele, m15_trand)
+																							.flatMap(re -> {
+																								return Mono.empty();
+																							})
+																					);
+																		}
+																		return Mono.empty();
+																	})
+																);
+												})
+											)
+										)
+								)
+						.collectList()
+						.doOnSuccess(list ->{
+							if(isStart.get()) {
+								isStart.set(false);
+							}
+						})
+						.then()
+						)
+				).subscribe();
+	}
+	
+	public String teleStr(String asisTrand, String toTrand, String symbol, String price, String time) {
+		return symbol + " " + time + " 추세전환 ! " + asisTrand + " -> " + toTrand + " 현재 가격 : " + price;
+	}
+	public Mono<Boolean> saveTele(String symbol, String m5_trand, String m15_trand){
+		return Mono.defer(() -> redisService.saveValue(EnumType.m15_tele.value()+symbol, m15_trand)
+				.flatMap(r -> redisService.saveValue(EnumType.m5_tele.value()+symbol, m5_trand)
+						.flatMap(re -> {
+							return Mono.just(re);
+						})
+				)
+		);
+	}
+	
+	
 	/*
 	 * 15분봉 ema9, ema25 정배열, 역배열 구하기 -> 15분봉 ssl 선이 현재가격 위치(정배열이면 위에 위치해야하고 역배열이면 아래에 위치해야 추세확인)
 		-> 1분봉 ema9, ema25 ssl최근데이터5개를 구해서 15분봉과 반대추세인지 확인(1분봉 ema25아래에 있을경우로 변경?)

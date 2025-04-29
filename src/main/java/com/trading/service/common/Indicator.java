@@ -269,7 +269,8 @@ public class Indicator {
 	 
 	 //=============================
 	 //																					88						52						63
-	 //																					32						27						50
+	 //																					32						26						50
+	 //																					80						27						50	 
 	  public static Mono<String> getSTC(List<Double> closePrices, int stcLength, int fastLength, int slowLength) {
 	        return Mono.fromSupplier(() -> {
 	            int size = closePrices.size();

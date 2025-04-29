@@ -27,7 +27,7 @@ public class TradingService {
 	@Autowired
 	private TradingUtil util;
 	
-	
+
 	//ema, ssl 로 추세확인
 	public Mono<String> trandCandle(String symbol, String time) {
 		int period9 = 9;
@@ -90,40 +90,59 @@ public class TradingService {
 							double ema9 = indicator.ema(close, period9);
 
 							return trandStr(ema25,ema9)
-									.flatMap(trand -> {
-										List<Double> sslData = indicator.ssl(candles.getHigh(), candles.getLow(), candles.getCloses(), 60);
-										int sslData_size = (sslData.size()-1);
-										List<Double> ssl = sslData.subList((sslData_size-10), sslData_size);
-										
-										for (int i = 0; i < (ssl.size()-5); i++) {
-											if(trand.equals(EnumType.None.value())) {
+									.flatMap(trand -> stcTrand(close)
+										.flatMap(stc -> {
+											if(!trand.equals(stc)) {
 												return Mono.just(EnumType.None.value());
 											}
-											
-											if(trand.equals(EnumType.Short.value())) {
-												if(ssl.get(i) > ssl.get(i+1)) {
-													//우하향중
-													continue;
-												}else {
-													//ssl 우하향이 아니고 중간에 추세전환
+											List<Double> sslData = indicator.ssl(candles.getHigh(), candles.getLow(), candles.getCloses(), 60);
+											int sslData_size = (sslData.size()-1);
+											List<Double> ssl = sslData.subList((sslData_size-10), sslData_size);
+												
+											for (int i = 0; i < (ssl.size()-5); i++) {
+												if(trand.equals(EnumType.None.value())) {
 													return Mono.just(EnumType.None.value());
 												}
-											}else {
-												//long
-												if(ssl.get(i) < ssl.get(i+1)) {
-													//우상향중
-													continue;
+												
+												if(trand.equals(EnumType.Short.value())) {
+													if(ssl.get(i) > ssl.get(i+1)) {
+														//우하향중
+														continue;
+													}else {
+														//ssl 우하향이 아니고 중간에 추세전환
+														return Mono.just(EnumType.None.value());
+													}
 												}else {
-													//ssl 우상향이 아니고 중간에 추세전환
-													return Mono.just(EnumType.None.value());
+													//long
+													if(ssl.get(i) < ssl.get(i+1)) {
+														//우상향중
+														continue;
+													}else {
+														//ssl 우상향이 아니고 중간에 추세전환
+														return Mono.just(EnumType.None.value());
+													}
 												}
 											}
-										}
-										return Mono.just(trand);
-									});
+											return Mono.just(trand);
+										})
+
+									);
 				});
 	}
 
+	//Stc 추세
+	public Mono<String> stcTrand(List<Double> closeList){
+		return Mono.defer(() -> indicator.getSTC(closeList, 80, 27, 50)
+			.flatMap(stc1 -> indicator.getSTC(closeList, 32, 26, 50)
+				.flatMap(stc2 -> {
+					if(!stc1.equals(stc2)) {
+						return Mono.just(EnumType.None.value());
+					}
+					return Mono.just(stc1);
+				})
+			)
+		);
+	}
 	//EMA 추세 확인
 	public Mono<String> trandStr1(double ema99, double ema25, double ema9){
 		return Mono.defer(() -> {

@@ -28,15 +28,21 @@ public class BinanceRestService {
 	private final WebClient webClient = WebClient.builder()
 		        .baseUrl("https://fapi.binance.com")
 		        .build();
-
+	//private final WebClient webClient;
+   /* public BinanceRestService(WebClient webClient) {
+        this.webClient = webClient;
+    }*/
+    
 	//캔들데이터 가져오기
 	public Mono<List<Candle>> getCandles(String symbol, String interval, int limit) {
+		long now = System.currentTimeMillis();
 		return webClient.get()
 				.uri(uriBuilder -> uriBuilder
 						.path("/fapi/v1/klines")
 						.queryParam("symbol", symbol)
 						.queryParam("interval", interval)
 						.queryParam("limit", limit)
+						//.queryParam("endTime", now)
 						.build())
 		            	.retrieve()
 		            	.bodyToMono(new ParameterizedTypeReference<List<List<Object>>>() {})

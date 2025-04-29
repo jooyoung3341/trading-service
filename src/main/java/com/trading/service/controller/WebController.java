@@ -1,12 +1,9 @@
 package com.trading.service.controller;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -14,7 +11,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
 
 import com.trading.service.DB.History;
 import com.trading.service.DB.HistoryService;
@@ -53,6 +49,7 @@ public class WebController {
 	@ResponseBody
 	@RequestMapping(value="/getTicker", method=RequestMethod.GET)
 	public Mono<List<Ticker>> getTicker(){
+		System.out.println("getTicker 실행");
 		return Mono.defer(() -> redisService.getTradingSymbolList(EnumType.TradingSymbol.value())
 				.flatMap(symbolList -> {
 					List<Ticker> tickers = new ArrayList<>();
@@ -77,19 +74,19 @@ public class WebController {
 										return ti;
 									})
 								)
-							.flatMap(ti -> tradingService.trandCandle(ti.getSymbol(), EnumType.m1.value())
+							.flatMap(ti -> tradingService.trandType(ti.getSymbol(), EnumType.m1.value())
 									.map(trand -> {
 										ti.setM1_trand(trand);
 										return ti;
 									})
 								)
-							.flatMap(ti -> tradingService.trandCandle(ti.getSymbol(), EnumType.m5.value())
+							.flatMap(ti -> tradingService.trandType(ti.getSymbol(), EnumType.m5.value())
 									.map(trand -> {
 										ti.setM5_trand(trand);
 										return ti;
 									})
 								)
-							.flatMap(ti -> tradingService.trandCandle(ti.getSymbol(), EnumType.m15.value())
+							.flatMap(ti -> tradingService.trandType(ti.getSymbol(), EnumType.m15.value())
 									.map(trand -> {
 										ti.setM15_trand(trand);
 										return ti;
@@ -166,11 +163,15 @@ public class WebController {
 					if(targetResult) {
 						//중복
 						return Mono.just(EnumType.Fail.value());
-					}
+					}//								return Mono.just(EnumType.Success.value());
 					return redisService.addTradingSymbol("TradingSymbol", request.getParameter("symbol"))
-							.flatMap(result -> {
-								return Mono.just(EnumType.Success.value());
-							});
+							.flatMap(result -> redisService.saveValue(EnumType.m5_tele.value()+request.getParameter("symbol"), "start")
+									.flatMap(r -> redisService.saveValue(EnumType.m15_tele.value()+request.getParameter(EnumType.symbol.value()), "start")
+											.flatMap(re -> {
+												return Mono.just(EnumType.Success.value());
+											})
+								)
+							);
 				})
 			);
 	}
@@ -179,16 +180,19 @@ public class WebController {
 	@RequestMapping(value="/deleteSymbol", method=RequestMethod.GET)
 	public Mono<Boolean> deleteSymbol(HttpServletRequest  request) {
 		return Mono.defer(() -> redisService.removeTradingSymbol("TradingSymbol", request.getParameter("symbol"))
-				.flatMap(remove -> {
-					return Mono.just(true);
-				})
+				.flatMap(remove -> redisService.delete(EnumType.m5_tele.value()+request.getParameter("symbol"))
+						.flatMap(r -> redisService.delete(EnumType.m15_tele.value()+request.getParameter(EnumType.symbol.value()))
+								.flatMap(re -> {
+									return Mono.just(true);
+								})
+					)
+				)
 			);
 	}
 	
 	@ResponseBody
 	@RequestMapping(value="/allTicket", method=RequestMethod.GET)
 	public Mono<List<Ticker>> allTicket() {
-		System.out.println("alltic");
 		return Mono.defer(() -> restService.getTickers()
 				.flatMap(ticker -> {					
 					return Mono.just(ticker);
@@ -233,11 +237,19 @@ public class WebController {
 												map.put("m15_strong", m15_strong);
 												
 												
-												return Mono.just(map);
-													})
-											)
-									)
-							)
+												//return Mono.just(map);
+												return tradingService.stcTrand(m5_close)
+														.flatMap(m5_stc -> tradingService.stcTrand(m15_close)
+																.flatMap(m15_stc -> {
+																	map.put("m5_stc", m5_stc);
+																	map.put("m15_stc", m15_stc);
+																	return Mono.just(map);
+																})
+														);
+											})
+										)
+								)
+						)
 				);
 		});	
 	}

@@ -217,7 +217,7 @@ $('#addSymbol').on('click', function(){
 			type : "get",
 			data : {"symbol" : symbol},
 			success : function(data){
-				if(data === "fail"){
+				if(data === "Fail"){
 					alert("이미 있음");
 					return;
 				}
@@ -366,6 +366,30 @@ $(document).on("click", "[name='detailBtn']", function(){
 		    disp += "<li class='list-group-item d-flex justify-content-between align-items-center "+groupClass+"' style='height: 70px;'>";
 			disp += "<h4>15분 qqe</h4>";
 			disp += "<span class='badge bg-secondary rounded-pill'><h5>"+data.m15_qqe+"</h5></span>";
+		    disp += "</li>";
+		    
+		    if(data.m5_stc == "Long"){
+				groupClass = "alert-success";
+			}else if(data.m5_stc == "Short"){
+				groupClass = "alert-danger";
+			}else if(data.m5_stc == "None"){
+				groupClass = "alert-secondary";
+			}
+		    disp += "<li class='list-group-item d-flex justify-content-between align-items-center "+groupClass+"' style='height: 70px;'>";
+			disp += "<h4>5분 STC</h4>";
+			disp += "<span class='badge bg-secondary rounded-pill'><h5>"+data.m5_stc+"</h5></span>";
+		    disp += "</li>";
+		    
+		    if(data.m15_stc == "Long"){
+				groupClass = "alert-success";
+			}else if(data.m15_stc == "Short"){
+				groupClass = "alert-danger";
+			}else if(data.m15_stc == "None"){
+				groupClass = "alert-secondary";
+			}
+		    disp += "<li class='list-group-item d-flex justify-content-between align-items-center "+groupClass+"' style='height: 70px;'>";
+			disp += "<h4>15분 STC</h4>";
+			disp += "<span class='badge bg-secondary rounded-pill'><h5>"+data.m15_stc+"</h5></span>";
 		    disp += "</li>";
 		    
 		    disp += "<br/>";

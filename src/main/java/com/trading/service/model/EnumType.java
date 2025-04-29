@@ -20,6 +20,10 @@ public enum EnumType {
 	,BUY("BUY")
 	,SELL("SELL")
 	,candle("110")
+	,m5_tele("m5tele_")
+	,m15_tele("m15tele_")
+	,symbol("symbol")
+
 	
 	;
 	final String value;
