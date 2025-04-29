@@ -7,7 +7,7 @@ public enum EnumType {
 	,None("None")
 	,Long("Long")
 	,Short("Short")
-	,autoSymbol("autoSymbol")
+	,AutoSymbol("AutoSymbol")
 	,TradingSymbol("TradingSymbol")
 	,isAuto("isAuto")
 	,DetailSymbol("DetailSymbol")

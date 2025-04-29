@@ -290,7 +290,7 @@ public class TradingServiceConsumer implements CommandLineRunner{
 			if(!isPosition.get()) {
 				//포지션 없음
 				//return Mono.empty();
-				return redisService.getTradingSymbolList(EnumType.autoSymbol.value())
+				return redisService.getTradingSymbolList(EnumType.AutoSymbol.value())
 						.flatMapMany(Flux::fromIterable)
 						.flatMap(symbol -> tradingService.trandCandle(symbol, EnumType.m1.value())
 								.flatMap(m1_trand -> tradingService.trandCandle(symbol, EnumType.m5.value())
