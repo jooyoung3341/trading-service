@@ -164,14 +164,17 @@ public class WebController {
 						//중복
 						return Mono.just(EnumType.Fail.value());
 					}//								return Mono.just(EnumType.Success.value());
-					return redisService.addTradingSymbol("TradingSymbol", request.getParameter("symbol"))
-							.flatMap(result -> redisService.saveValue(EnumType.m5_tele.value()+request.getParameter("symbol"), "start")
-									.flatMap(r -> redisService.saveValue(EnumType.m15_tele.value()+request.getParameter(EnumType.symbol.value()), "start")
-											.flatMap(re -> {
-												return Mono.just(EnumType.Success.value());
-											})
-								)
-							);
+					String symbol = request.getParameter(EnumType.symbol.value());
+					Mono<Boolean> m1save = redisService.saveValue(EnumType.m1_tele.value()+symbol, EnumType.redisFalse.value());
+					Mono<Boolean> m5save = redisService.saveValue(EnumType.m5_tele.value()+symbol, EnumType.None.value());
+					Mono<Boolean> m15save = redisService.saveValue(EnumType.m15_tele.value()+symbol, EnumType.None.value());
+					Mono<Long> listSava = redisService.addTradingSymbol(EnumType.TradingSymbol.value(), symbol);
+					return Mono.zip(m1save, m5save, m15save, listSava)
+							.flatMap(r -> {
+								return Mono.just(EnumType.Success.value());
+							});
+							
+						
 				})
 			);
 	}
@@ -179,15 +182,17 @@ public class WebController {
 	@ResponseBody
 	@RequestMapping(value="/deleteSymbol", method=RequestMethod.GET)
 	public Mono<Boolean> deleteSymbol(HttpServletRequest  request) {
-		return Mono.defer(() -> redisService.removeTradingSymbol("TradingSymbol", request.getParameter("symbol"))
-				.flatMap(remove -> redisService.delete(EnumType.m5_tele.value()+request.getParameter("symbol"))
-						.flatMap(r -> redisService.delete(EnumType.m15_tele.value()+request.getParameter(EnumType.symbol.value()))
-								.flatMap(re -> {
-									return Mono.just(true);
-								})
-					)
-				)
-			);
+		return Mono.defer(() -> {
+			String symbol = request.getParameter(EnumType.symbol.value());
+			Mono<Long> m1delete = redisService.delete(EnumType.m1_tele.value()+symbol);
+			Mono<Long> m5delete = redisService.delete(EnumType.m5_tele.value()+symbol);
+			Mono<Long> m15delete = redisService.delete(EnumType.m15_tele.value()+symbol);
+			Mono<Long> listDelete =  redisService.removeTradingSymbol(EnumType.TradingSymbol.value(), symbol);
+			return Mono.zip(m1delete, m5delete, m15delete, listDelete)
+					.flatMap(r -> {
+						return Mono.just(true);
+					});
+		});
 	}
 	
 	@ResponseBody

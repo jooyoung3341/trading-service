@@ -20,9 +20,12 @@ public enum EnumType {
 	,BUY("BUY")
 	,SELL("SELL")
 	,candle("110")
+	,m1_tele("m1tele_")
 	,m5_tele("m5tele_")
 	,m15_tele("m15tele_")
 	,symbol("symbol")
+	,redisFalse("False")
+	,redisTrue("True")
 
 	
 	;

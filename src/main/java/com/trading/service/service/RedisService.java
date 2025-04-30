@@ -60,4 +60,15 @@ public class RedisService {
                 .filter(symbol -> symbol.equals(targetValue))  // 원하는 값 필터링
                 .hasElements();                 // 하나라도 있으면 true 반환
     }
+    
+	/**
+	 * redis List size를 조회한다.
+	 * @param key Lists 객체의 key 값
+	 * @return Lists 객체의 사이즈
+	 */
+	public Mono<Long> size(String key) {
+		return redisTemplate.opsForList()
+				.size(key);
+	}
+	
 }
