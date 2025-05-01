@@ -49,7 +49,7 @@ public class WebController {
 	@ResponseBody
 	@RequestMapping(value="/getTicker", method=RequestMethod.GET)
 	public Mono<List<Ticker>> getTicker(){
-		System.out.println("getTicker 실행");
+		//System.out.println("getTicker 실행");
 		return Mono.defer(() -> redisService.getTradingSymbolList(EnumType.TradingSymbol.value())
 				.flatMap(symbolList -> {
 					List<Ticker> tickers = new ArrayList<>();
