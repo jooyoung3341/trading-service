@@ -77,11 +77,10 @@ public class TradingServiceConsumer implements CommandLineRunner{
 		//false = 포지션 X / true = 포지션O
 		AtomicBoolean isPosition = new AtomicBoolean(false);
 		
-		m15Process(tradingType, tel15, isPosition);
-		m5Process(tradingType, tel5, isPosition);
-		m1Process(tradingType, tel15, tel5, tel1, isPosition);
+	//	m15Process(tradingType, tel15, isPosition);
+	//	m5Process(tradingType, tel5, isPosition);
+	//	m1Process(tradingType, tel15, tel5, tel1, isPosition);
 	}
-	
 	/*
 	 * stc, 정배여부 두개돌린다?
 	 * 포지션 진입 기준(롱기준) : 15분봉 ema 9 25 99 정배열, stc 초록색 일 경우 5분봉 ema9, 25 정배 stc 빨강 -> 이후 1분봉 빨강 이였다가 초록 될 떄 진입
@@ -147,14 +146,16 @@ public class TradingServiceConsumer implements CommandLineRunner{
 													Candles candles = new Candles().setCandles(list);
 													List<Double> close = candles.getCloses().subList(0, (candles.getCloses().size() -1));
 													double ema25 = indicator.ema(close, 25);
-													double ema9 = indicator.ema(close, 9);
+													//double ema9 = indicator.ema(close, 9);
+													
+													double ssl = indicator.sslLast(candles.getHigh(), candles.getLow(), candles.getCloses(), 70);
 													
 													return indicator.getSTC(close, 88, 52, 63)
 															.flatMap(stc -> {
 																String m5_trand = "";
-																if(ema25 > ema9 && stc.equals(EnumType.Short.value())) {
+																if(ema25 < ssl && stc.equals(EnumType.Short.value())) {
 																	m5_trand = EnumType.Short.value();
-																}else if(ema25 < ema9 && stc.equals(EnumType.Long.value())) {
+																}else if(ema25 > ssl&& stc.equals(EnumType.Long.value())) {
 																	m5_trand = EnumType.Long.value();
 																}else {
 																	m5_trand = EnumType.None.value();

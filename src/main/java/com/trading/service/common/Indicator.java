@@ -205,6 +205,33 @@ public class Indicator {
 
 		    return sslList;
 		}
+	
+	public static double sslLast(List<Double> highList, List<Double> lowList, List<Double> closeList, int period) {
+			int size = closeList.size();
+			if (size < period) throw new IllegalArgumentException("Not enough data");
+			
+			List<Double> emaHighList = hmaList(highList, period);
+			List<Double> emaLowList = hmaList(lowList, period);
+			
+			int hlv = 0;
+			double ssl = 0.0;
+			
+			for (int i = 0; i < size; i++) {
+			double close = closeList.get(i);
+			double emaHigh = emaHighList.get(i);
+			double emaLow = emaLowList.get(i);
+			
+			if (close > emaHigh) hlv = 1;
+			else if (close < emaLow) hlv = -1;
+			// else 유지
+			
+			ssl = (hlv < 0) ? emaHigh : emaLow;
+			}
+			
+			return ssl;
+			}
+	
+	//================================================
 																		      // 12, 					10, 							6.0
 	 public static QqeResult qqe(List<Double> close, int rsiLength, int smoothingLength, double qqeFactor) {
 	        List<Double> rsi = rsi(close, rsiLength);
