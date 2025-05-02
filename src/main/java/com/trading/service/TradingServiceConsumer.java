@@ -3,6 +3,7 @@ package com.trading.service;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -80,6 +81,7 @@ public class TradingServiceConsumer implements CommandLineRunner{
 	//	m15Process(tradingType, tel15, isPosition);
 	//	m5Process(tradingType, tel5, isPosition);
 	//	m1Process(tradingType, tel15, tel5, tel1, isPosition);
+		m5Tele(tradingType, tel5, isPosition);
 	}
 	/*
 	 * stc, 정배여부 두개돌린다?
@@ -174,6 +176,96 @@ public class TradingServiceConsumer implements CommandLineRunner{
 				}
 	}).subscribe();
 	}
+	
+	public void m5Tele(String listType, String processType, AtomicBoolean isPosition) {
+		System.out.println("m5tele start");
+		Flux.interval(Duration.ofMinutes(3))
+			.startWith(0L)
+			.flatMap(m5 -> {
+				if(!isPosition.get()) {
+					System.out.println("시작");
+					return redisService.getTradingSymbolList(listType)
+					.flatMapMany(Flux::fromIterable)
+						.flatMap(symbol -> redisService.getValue(processType+symbol)
+								.flatMap(trand -> {
+									return restService.getPrice(symbol)
+											.flatMap(price -> restService.getCandles(symbol, EnumType.m5.value(), Integer.parseInt(EnumType.candle.value()))
+												.flatMap(list -> {
+													Candles candles = new Candles().setCandles(list);
+													List<Double> close = candles.getCloses().subList(0, (candles.getCloses().size() -1));
+													double ema25 = indicator.ema(close, 25);
+													double ema9 = indicator.ema(close, 9);
+													
+													List<Double> sslData = indicator.ssl(candles.getHigh(), candles.getLow(), candles.getCloses(), 70);
+													int sslData_size = (sslData.size()-1);
+													List<Double> ssl = sslData.subList((sslData_size-5), sslData_size);
+
+													return indicator.getSTC(close, 88, 52, 63)
+															.flatMap(stc -> {
+																String m5_trand = "";
+				
+																
+																if(ema25 > ema9 && stc.equals(EnumType.Short.value())) {
+																	m5_trand = EnumType.Short.value();
+																}else if(ema25 < ema9 && stc.equals(EnumType.Long.value())) {
+																	m5_trand = EnumType.Long.value();
+																}else {
+																	m5_trand = EnumType.None.value();
+																	return Mono.empty();
+																}
+																
+																for (int i = 0; i < ssl.size(); i++) {
+																	if(m5_trand.equals(EnumType.Short.value())) {
+																		if(ssl.get(i) > ssl.get(i+1)) {
+																			//우하향중
+																			continue;
+																		}else {
+																			//ssl 우하향이 아니고 중간에 추세전환
+																			return Mono.just(EnumType.None.value());
+																		}
+																	}else {
+																		//long
+																		if(ssl.get(i) < ssl.get(i+1)) {
+																			//우상향중
+																			continue;
+																		}else {
+																			//ssl 우상향이 아니고 중간에 추세전환
+																			return Mono.just(EnumType.None.value());
+																		}
+																	}
+																	
+																}
+																System.out.println("[m5Process] m5 추세 : " + m5_trand);
+																if(trand.equals(m5_trand)) {
+																	//추세 전환이 아니기 떄문에 바로 리턴
+																	return Mono.empty();
+																}
+																//추세 전환이 되면 tele보내고 redis에 저장
+																//return redisService.saveValue(processType+symbol, m5_trand)
+																	//	.then();
+																
+																LocalDateTime now = LocalDateTime.now();
+															    String formatted = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+														        
+																String teleText = teleStr(trand, m5_trand, symbol, String.valueOf(price), formatted);
+																return teleService.sendMessage(teleText)
+																		.then(redisService.saveValue(processType+symbol, m5_trand));
+	//																	.flatMap(r -> redisService.saveValue(processType+symbol, m5_trand)
+//																				.then();
+																		
+															});
+												})	
+													
+											);
+								})
+							);
+				} else {
+					return Mono.empty();
+				}
+	}).subscribe();
+	}
+	
+	
 	
 	//m1_position : false - 포지션X 첫번쨰 / true - 포지션 O 두번쨰
 	public void m1Process(String listType, String m15Type, String m5Type, String m1Type, AtomicBoolean isPosition) {
