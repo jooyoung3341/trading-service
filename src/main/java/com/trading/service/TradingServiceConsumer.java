@@ -204,7 +204,7 @@ public class TradingServiceConsumer implements CommandLineRunner{
 																		System.out.println("[m1Process] position : " + m1_position);
 																		if(m5_trand.equals(stc) && m15_trand.equals(stc)) {
 																			//같은추세
-																			if(!m1_position.equals(EnumType.redisFalse.value())) {
+																			if(m1_position.equals(EnumType.redisFalse.value())) {
 																				//첫 추세면 매매 X
 																				return Mono.empty();
 																			}else if(m1_position.equals(EnumType.redisTrue.value())) {
@@ -221,7 +221,7 @@ public class TradingServiceConsumer implements CommandLineRunner{
 																			}
 																		}else {
 																			//반대추세
-																			if(!m1_position.equals(EnumType.redisFalse.value())) {
+																			if(m1_position.equals(EnumType.redisFalse.value())) {
 																				return redisService.saveValue(m1Type+symbol, EnumType.redisTrue.value())
 																						.then();
 																			}
