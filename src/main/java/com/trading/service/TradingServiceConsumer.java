@@ -198,7 +198,7 @@ public class TradingServiceConsumer implements CommandLineRunner{
 													
 													List<Double> sslData = indicator.ssl(candles.getHigh(), candles.getLow(), candles.getCloses(), 70);
 													int sslData_size = (sslData.size()-1);
-													List<Double> ssl = sslData.subList((sslData_size-5), sslData_size);
+													List<Double> ssl = sslData.subList((sslData_size-10), sslData_size);
 
 													return indicator.getSTC(close, 88, 52, 63)
 															.flatMap(stc -> {
@@ -214,7 +214,7 @@ public class TradingServiceConsumer implements CommandLineRunner{
 																	return Mono.empty();
 																}
 																
-																for (int i = 0; i < ssl.size(); i++) {
+																for (int i = 0; i < (ssl.size()-4); i++) {
 																	if(m5_trand.equals(EnumType.Short.value())) {
 																		if(ssl.get(i) > ssl.get(i+1)) {
 																			//우하향중
